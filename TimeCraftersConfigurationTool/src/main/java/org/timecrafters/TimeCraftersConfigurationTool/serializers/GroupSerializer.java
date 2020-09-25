@@ -6,7 +6,9 @@ import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
+import org.timecrafters.TimeCraftersConfigurationTool.backend.Config;
 import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Action;
+import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Configuration;
 import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Group;
 
 import java.lang.reflect.Type;

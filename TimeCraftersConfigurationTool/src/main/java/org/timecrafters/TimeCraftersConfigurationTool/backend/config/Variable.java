@@ -1,5 +1,9 @@
 package org.timecrafters.TimeCraftersConfigurationTool.backend.config;
 
+import android.util.Log;
+
+import java.util.Arrays;
+
 public class Variable {
     public String name;
     private String value;

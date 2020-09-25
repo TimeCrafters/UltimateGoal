@@ -121,6 +121,7 @@ import org.firstinspires.ftc.robotcore.internal.ui.UILocation;
 import org.firstinspires.ftc.robotcore.internal.webserver.RobotControllerWebInfo;
 import org.firstinspires.ftc.robotserver.internal.programmingmode.ProgrammingModeManager;
 import org.firstinspires.inspection.RcInspectionActivity;
+import org.timecrafters.TimeCraftersConfigurationTool.backend.Backend;
 
 import java.util.List;
 import java.util.Queue;
@@ -379,6 +380,12 @@ public class FtcRobotControllerActivity extends Activity
     }
 
     FtcAboutActivity.setBuildTimeFromBuildConfig(BuildConfig.BUILD_TIME);
+
+    // TODO: Allow disabling TAC Server when in a competition
+    if (true) {
+      new Backend();
+      Backend.instance().startServer();
+    }
   }
 
   protected UpdateUI createUpdateUI() {
@@ -458,6 +465,8 @@ public class FtcRobotControllerActivity extends Activity
     if (preferencesHelper != null) preferencesHelper.getSharedPreferences().unregisterOnSharedPreferenceChangeListener(sharedPreferencesListener);
 
     RobotLog.cancelWriteLogcatToDisk();
+
+    Backend.instance().stopServer();
   }
 
   protected void bindToService() {

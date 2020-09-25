@@ -21,6 +21,10 @@ android {
     }
 }
 
+dependencies {
+    implementation project(path: ':TimeCraftersConfigurationTool')
+}
+
 repositories {
     maven { url = "https://dl.bintray.com/first-tech-challenge/ftcsdk/" }
 

@@ -1,2 +1,3 @@
+include ':TimeCraftersConfigurationTool'
 include ':FtcRobotController'
 include ':TeamCode'

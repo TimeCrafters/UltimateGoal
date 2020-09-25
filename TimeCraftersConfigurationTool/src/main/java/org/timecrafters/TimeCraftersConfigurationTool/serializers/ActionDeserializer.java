@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
 import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Action;
+import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Group;
 import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Variable;
 
 import java.lang.reflect.Type;

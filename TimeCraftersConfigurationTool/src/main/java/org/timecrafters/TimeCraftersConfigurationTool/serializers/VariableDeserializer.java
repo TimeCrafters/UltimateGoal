@@ -6,9 +6,14 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 
+import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Action;
+import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Group;
 import org.timecrafters.TimeCraftersConfigurationTool.backend.config.Variable;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class VariableDeserializer implements JsonDeserializer<Variable> {
     @Override
