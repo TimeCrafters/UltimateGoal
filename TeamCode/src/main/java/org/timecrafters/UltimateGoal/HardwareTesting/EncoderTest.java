@@ -20,36 +20,37 @@ public class EncoderTest extends CyberarmState {
     public void exec() {
         robot.updateLocation();
 
-        if (runTime() < 3000) {
-            robot.setDrivePower(0.5, 0.5);
+        robot.setDrivePower(-0.2 * engine.gamepad1.left_stick_y, -0.2 * engine.gamepad1.right_stick_y);
 
-            ticksLeft=robot.encoderLeft.getCurrentPosition();
-            ticksRight=robot.encoderRight.getCurrentPosition();
-
+        ticksLeft=robot.encoderLeft.getCurrentPosition();
+        ticksRight=robot.encoderRight.getCurrentPosition();
 
 
-        } else {
-            robot.encoderLeft.setPower(0.0);
-            robot.encoderRight.setPower(0.0);
-
-            double ticksExtreme;
-            if (Math.abs(ticksLeft) < Math.abs(ticksRight)) {
-                ticksExtreme = ticksLeft;
-            } else {
-                ticksExtreme = ticksRight;
-            }
-            biasLeft = ticksExtreme/ticksLeft;
-            biasRight = ticksExtreme/ticksRight;
-        }
+//        if (runTime() < 3000) {
+//
+//
+//
+//
+//        } else {
+//            robot.encoderLeft.setPower(0.0);
+//            robot.encoderRight.setPower(0.0);
+//
+//            double ticksExtreme;
+//            if (Math.abs(ticksLeft) < Math.abs(ticksRight)) {
+//                ticksExtreme = ticksLeft;
+//            } else {
+//                ticksExtreme = ticksRight;
+//            }
+//            biasLeft = ticksExtreme/ticksLeft;
+//            biasRight = ticksExtreme/ticksRight;
+//        }
 
     }
 
     @Override
     public void telemetry() {
-        engine.telemetry.addLine("Biases");
-        engine.telemetry.addData("Left", biasLeft);
-        engine.telemetry.addData("Right", biasRight);
-        engine.telemetry.addLine();
+
+        engine.telemetry.addData("controler", engine.gamepad1.left_stick_y);
         engine.telemetry.addLine("Latency Values");
         engine.telemetry.addData("Y", robot.getLocationY());
         engine.telemetry.addData("X", robot.getLocationX());
@@ -59,6 +60,7 @@ public class EncoderTest extends CyberarmState {
         engine.telemetry.addLine("Actual Values");
         engine.telemetry.addData("Left", ticksLeft);
         engine.telemetry.addData("Right", ticksRight);
+
 //        engine.telemetry.addLine("");
 //        engine.telemetry.addData("Front", robot.encoderFront);
 //        engine.telemetry.addData("Back", robot.encoderBack);

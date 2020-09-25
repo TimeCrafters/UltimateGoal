@@ -26,7 +26,7 @@ public class Robot {
     public DcMotor encoderRight;
 
     double BIAS_LEFT = 1.0;
-    double BIAS_RIGHT = 0.6815;
+    double BIAS_RIGHT = 0.87;
 
     //Robot Localizatoin
     private double locationX;
@@ -81,8 +81,8 @@ public class Robot {
 
         double average = (encoderLeftChange+encoderRightChange)/2;
 
-        double xChange = average * (Math.sin(Math.toRadians(rotationChange)));
-        double yChange = average * (Math.cos(Math.toRadians(rotationChange)));
+        double xChange = average * (Math.sin(Math.toRadians(rotation)));
+        double yChange = average * (Math.cos(Math.toRadians(rotation)));
 
         locationX += xChange;
         locationY += yChange;
