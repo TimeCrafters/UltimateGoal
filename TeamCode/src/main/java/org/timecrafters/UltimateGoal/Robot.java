@@ -25,8 +25,11 @@ public class Robot {
     public DcMotor encoderBack;
     public DcMotor encoderRight;
 
-    double BIAS_LEFT = 1.0;
-    double BIAS_RIGHT = 0.87;
+    double BIAS_LEFT = -1.0;
+    double BIAS_RIGHT = -0.87;
+
+    double Circumference_Encoder = Math.PI * 3.8;
+    int Counts_Per_Revolution = 8192;
 
     //Robot Localizatoin
     private double locationX;
@@ -46,7 +49,7 @@ public class Robot {
 //        encoderBack = hardwareMap.dcMotor.get("encoderBack");
         encoderRight = hardwareMap.dcMotor.get("encoderRight");
 
-        encoderLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        encoderRight.setDirection(DcMotorSimple.Direction.REVERSE);
         
         encoderLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         encoderRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -99,5 +102,13 @@ public class Robot {
 
     public double getLocationY() {
         return locationY;
+    }
+
+    public double ticksToInches(double ticks) {
+        return ticks * (Circumference_Encoder / Counts_Per_Revolution);
+    }
+
+    public double inchesToTicks(double inches) {
+        return inches * (Counts_Per_Revolution / Circumference_Encoder);
     }
 }
