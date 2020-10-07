@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.cyberarm.NeXT.StateConfiguration;
+import org.timecrafters.TimeCraftersConfigurationTool.TimeCraftersConfiguration;
 
 public class Robot {
 
@@ -15,7 +16,7 @@ public class Robot {
         this.hardwareMap = hardwareMap;
     }
 
-    public StateConfiguration stateConfiguration = new StateConfiguration();
+    public TimeCraftersConfiguration stateConfiguration = new TimeCraftersConfiguration();
     public BNO055IMU imu;
 
     //drive system
@@ -92,7 +93,7 @@ public class Robot {
 
     }
 
-    public double getRotation() {
+    public float getRotation() {
         return rotation;
     }
 
@@ -110,5 +111,18 @@ public class Robot {
 
     public double inchesToTicks(double inches) {
         return inches * (Counts_Per_Revolution / Circumference_Encoder);
+    }
+
+    public float getRelativeAngle(float reference, float current) {
+        float relative = current - reference;
+
+        if (relative < -180) {
+            relative += 360;
+        }
+
+        if (relative > 180) {
+            relative -= 360;
+        }
+        return relative;
     }
 }

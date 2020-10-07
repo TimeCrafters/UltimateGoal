@@ -70,7 +70,7 @@ public class TimeCraftersConfiguration {
     }
 
     public Variable variable(String groupName, String actionName, String variableName) {
-        final Action action = action(groupName, groupName);
+        final Action action = action(groupName, actionName);
 
         for (Variable variable : action.getVariables()) {
             if (variable.name.trim().equals(variableName.trim())) {
