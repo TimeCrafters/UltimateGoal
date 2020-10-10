@@ -29,13 +29,16 @@ public class Robot {
     double BIAS_LEFT = -1.0;
     double BIAS_RIGHT = -0.87;
 
-    double Circumference_Encoder = Math.PI * 3.8;
+    double Circumference_Encoder = Math.PI * 4;
     int Counts_Per_Revolution = 8192;
 
     //Robot Localizatoin
     private double locationX;
     private double locationY;
     private float rotation;
+
+    public double traveledLeft;
+    public double traveledRight;
 
     private int encoderFrontPrevious = 0;
     private int encoderLeftPrevious = 0;
@@ -49,6 +52,11 @@ public class Robot {
         encoderLeft = hardwareMap.dcMotor.get("encoderLeft");
 //        encoderBack = hardwareMap.dcMotor.get("encoderBack");
         encoderRight = hardwareMap.dcMotor.get("encoderRight");
+
+        encoderLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoderRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
         encoderRight.setDirection(DcMotorSimple.Direction.REVERSE);
         
@@ -72,12 +80,17 @@ public class Robot {
     }
 
     public void updateLocation(){
-        rotation = imu.getAngularOrientation().firstAngle;
+        // IMU orientation is inverted to have clockwise be positive.
+        rotation = -imu.getAngularOrientation().firstAngle;
+
         float rotationChange = rotation - rotationPrevious;
         int encoderLeftCurrent = encoderLeft.getCurrentPosition();
         int encoderRightCurrent = encoderRight.getCurrentPosition();
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
         double encoderRightChange = encoderRightCurrent - encoderRightPrevious;
+
+        traveledLeft += Math.abs(encoderLeftChange);
+        traveledRight += Math.abs(encoderRightChange);
 
         encoderLeftPrevious = encoderLeftCurrent;
         encoderRightPrevious = encoderRightCurrent;

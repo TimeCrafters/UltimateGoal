@@ -20,5 +20,8 @@ public class LocalizerTestingEngine extends CyberarmEngine {
     @Override
     public void setup() {
         addState(new IMUDrive(robot,"group", "010_drive"));
+        addState(new IMUTurn(robot,"group", "020_turn"));
+        addState(new IMUDrive(robot,"group", "030_drive"));
+        addState(new IMUTurn(robot,"group", "040_turn"));
     }
 }

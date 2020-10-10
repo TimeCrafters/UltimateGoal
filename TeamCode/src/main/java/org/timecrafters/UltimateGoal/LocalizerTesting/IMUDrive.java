@@ -15,6 +15,8 @@ public class IMUDrive extends CyberarmState {
     private int tickTarget;
     private float angleRelative;
     private float angleTarget;
+    private int tickStart;
+    private long finishDelay;
 
     public IMUDrive(Robot robot, String groupName, String actionName) {
         this.robot = robot;
@@ -30,11 +32,17 @@ public class IMUDrive extends CyberarmState {
         double inchesTarget = robot.stateConfiguration.variable(groupName, actionName, "inches").value();
         tickTarget = (int) robot.inchesToTicks(inchesTarget);
         angleTarget = robot.stateConfiguration.variable(groupName, actionName, "angle").value();
+        finishDelay = robot.stateConfiguration.variable(groupName,actionName,"delay").value();
     }
 
     @Override
     public void start() {
+        if (!robot.stateConfiguration.action(groupName,actionName).enabled) {
+            setHasFinished(true);
+        }
+
         angleTarget=robot.getRotation();
+        tickStart = robot.encoderRight.getCurrentPosition();
     }
 
     @Override
@@ -42,9 +50,10 @@ public class IMUDrive extends CyberarmState {
 
         robot.updateLocation();
 
-        if (Math.abs(robot.encoderRight.getCurrentPosition()) > tickTarget) {
-            robot.encoderRight.setPower(0);
-            robot.encoderLeft.setPower(0);
+        int ticksTraveled = Math.abs( robot.encoderRight.getCurrentPosition()-tickStart);
+        if (ticksTraveled > tickTarget) {
+            robot.setDrivePower(0,0);
+            sleep(finishDelay);
             setHasFinished(true);
         } else {
 
@@ -57,8 +66,21 @@ public class IMUDrive extends CyberarmState {
 
             double powerAdjust = ((2 * power) / (Math.abs(leftPower) + Math.abs(rightPower)));
 
-            robot.encoderRight.setPower(rightPower * powerAdjust);
-            robot.encoderLeft.setPower(leftPower * powerAdjust);
+            robot.setDrivePower(powerAdjust*leftPower, powerAdjust*rightPower);
         }
+    }
+
+    @Override
+    public void telemetry() {
+        engine.telemetry.addLine("Measured Values");
+        engine.telemetry.addData("Y", robot.ticksToInches(robot.getLocationY()));
+        engine.telemetry.addData("X", robot.ticksToInches(robot.getLocationX()));
+        engine.telemetry.addLine();
+        engine.telemetry.addData("Rotation", robot.getRotation());
+        engine.telemetry.addLine();
+        engine.telemetry.addLine("Total Travel");
+        engine.telemetry.addData("Left", robot.ticksToInches(robot.traveledLeft));
+        engine.telemetry.addData("Right", robot.ticksToInches(robot.traveledRight));
+
     }
 }
