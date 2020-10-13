@@ -22,7 +22,7 @@ public class EncoderTest extends CyberarmState {
 
         robot.setDrivePower(-0.2 * engine.gamepad1.left_stick_y, -0.2 * engine.gamepad1.right_stick_y);
 
-        ticksLeft=robot.encoderLeft.getCurrentPosition();
+        ticksLeft= robot.encoderLeft.getCurrentPosition();
         ticksRight=robot.encoderRight.getCurrentPosition();
 
 
@@ -50,16 +50,16 @@ public class EncoderTest extends CyberarmState {
     @Override
     public void telemetry() {
 
-        engine.telemetry.addData("controler", engine.gamepad1.left_stick_y);
+        engine.telemetry.addData("controller", engine.gamepad1.left_stick_y);
         engine.telemetry.addLine("Latency Values");
-        engine.telemetry.addData("Y", robot.getLocationY());
-        engine.telemetry.addData("X", robot.getLocationX());
+        engine.telemetry.addData("Y", robot.ticksToInches(robot.getLocationY()));
+        engine.telemetry.addData("X", robot.ticksToInches(robot.getLocationX()));
         engine.telemetry.addLine();
         engine.telemetry.addData("Rotation", robot.getRotation());
         engine.telemetry.addLine();
         engine.telemetry.addLine("Actual Values");
-        engine.telemetry.addData("Left", ticksLeft);
-        engine.telemetry.addData("Right", ticksRight);
+        engine.telemetry.addData("Left", robot.ticksToInches(ticksLeft));
+        engine.telemetry.addData("Right", robot.ticksToInches(ticksRight));
 
 //        engine.telemetry.addLine("");
 //        engine.telemetry.addData("Front", robot.encoderFront);

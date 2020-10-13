@@ -6,6 +6,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.cyberarm.NeXT.StateConfiguration;
+import org.timecrafters.TimeCraftersConfigurationTool.TimeCraftersConfiguration;
 
 public class Robot {
 
@@ -15,7 +16,7 @@ public class Robot {
         this.hardwareMap = hardwareMap;
     }
 
-    public StateConfiguration stateConfiguration = new StateConfiguration();
+    public TimeCraftersConfiguration stateConfiguration = new TimeCraftersConfiguration();
     public BNO055IMU imu;
 
     //drive system
@@ -25,13 +26,19 @@ public class Robot {
     public DcMotor encoderBack;
     public DcMotor encoderRight;
 
-    double BIAS_LEFT = 1.0;
-    double BIAS_RIGHT = 0.87;
+    double BIAS_LEFT = -1.0;
+    double BIAS_RIGHT = -0.87;
+
+    double Circumference_Encoder = Math.PI * 4;
+    int Counts_Per_Revolution = 8192;
 
     //Robot Localizatoin
     private double locationX;
     private double locationY;
     private float rotation;
+
+    public double traveledLeft;
+    public double traveledRight;
 
     private int encoderFrontPrevious = 0;
     private int encoderLeftPrevious = 0;
@@ -46,7 +53,12 @@ public class Robot {
 //        encoderBack = hardwareMap.dcMotor.get("encoderBack");
         encoderRight = hardwareMap.dcMotor.get("encoderRight");
 
-        encoderLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        encoderLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoderRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        encoderRight.setDirection(DcMotorSimple.Direction.REVERSE);
         
         encoderLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         encoderRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -68,12 +80,17 @@ public class Robot {
     }
 
     public void updateLocation(){
-        rotation = imu.getAngularOrientation().firstAngle;
+        // IMU orientation is inverted to have clockwise be positive.
+        rotation = -imu.getAngularOrientation().firstAngle;
+
         float rotationChange = rotation - rotationPrevious;
         int encoderLeftCurrent = encoderLeft.getCurrentPosition();
         int encoderRightCurrent = encoderRight.getCurrentPosition();
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
         double encoderRightChange = encoderRightCurrent - encoderRightPrevious;
+
+        traveledLeft += Math.abs(encoderLeftChange);
+        traveledRight += Math.abs(encoderRightChange);
 
         encoderLeftPrevious = encoderLeftCurrent;
         encoderRightPrevious = encoderRightCurrent;
@@ -89,7 +106,7 @@ public class Robot {
 
     }
 
-    public double getRotation() {
+    public float getRotation() {
         return rotation;
     }
 
@@ -99,5 +116,26 @@ public class Robot {
 
     public double getLocationY() {
         return locationY;
+    }
+
+    public double ticksToInches(double ticks) {
+        return ticks * (Circumference_Encoder / Counts_Per_Revolution);
+    }
+
+    public double inchesToTicks(double inches) {
+        return inches * (Counts_Per_Revolution / Circumference_Encoder);
+    }
+
+    public float getRelativeAngle(float reference, float current) {
+        float relative = current - reference;
+
+        if (relative < -180) {
+            relative += 360;
+        }
+
+        if (relative > 180) {
+            relative -= 360;
+        }
+        return relative;
     }
 }
