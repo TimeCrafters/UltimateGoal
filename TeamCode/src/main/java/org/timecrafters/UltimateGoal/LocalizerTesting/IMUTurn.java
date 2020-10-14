@@ -25,8 +25,12 @@ public class IMUTurn extends CyberarmState {
         power = robot.stateConfiguration.variable(groupName,actionName, "power").value();
         angleTarget = robot.stateConfiguration.variable(groupName,actionName, "angle").value();
         angleAllowance = robot.stateConfiguration.variable(groupName,actionName, "allowance").value();
-        turnDirection = robot.stateConfiguration.variable(groupName, actionName, "direction").value();
-        useOptimalDirection = (turnDirection==0);
+
+        // turnDirection = robot.stateConfiguration.variable(groupName, actionName, "direction").value();
+
+        turnDirection = 0;
+
+        useOptimalDirection = (turnDirection == 0);
     }
 
     @Override

@@ -32,7 +32,7 @@ public class IMUDrive extends CyberarmState {
         double inchesTarget = robot.stateConfiguration.variable(groupName, actionName, "inches").value();
         tickTarget = (int) robot.inchesToTicks(inchesTarget);
         angleTarget = robot.stateConfiguration.variable(groupName, actionName, "angle").value();
-        finishDelay = robot.stateConfiguration.variable(groupName,actionName,"delay").value();
+        finishDelay = robot.stateConfiguration.variable(groupName, actionName, "delay").value();
     }
 
     @Override
