@@ -26,7 +26,6 @@ public class IMUDrive extends CyberarmState {
 
     @Override
     public void init() {
-        Log.i("Config", Backend.instance().gsonForConfig().toJson(robot.stateConfiguration.getConfig()));
 
         power = robot.stateConfiguration.variable(groupName, actionName, "power").value();
         double inchesTarget = robot.stateConfiguration.variable(groupName, actionName, "inches").value();

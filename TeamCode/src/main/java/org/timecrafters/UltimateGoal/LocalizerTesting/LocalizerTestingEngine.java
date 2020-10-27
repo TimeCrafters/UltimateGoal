@@ -19,47 +19,7 @@ public class LocalizerTestingEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        addState(new IMUDrive(robot,"group", "010_drive"));
-        addState(new IMUTurn(robot,"group", "020_turn"));
-        addState(new IMUDrive(robot,"group", "030_drive"));
-        addState(new IMUTurn(robot,"group", "040_turn"));
-
-        addState(new IMUDrive(robot,"group", "050_drive"));
-        addState(new IMUTurn(robot,"group", "060_turn"));
-        addState(new IMUDrive(robot,"group", "070_drive"));
-        addState(new IMUTurn(robot,"group", "080_turn"));
-
-
-        addState(new IMUDrive(robot,"group", "010_drive"));
-        addState(new IMUTurn(robot,"group", "020_turn"));
-        addState(new IMUDrive(robot,"group", "030_drive"));
-        addState(new IMUTurn(robot,"group", "040_turn"));
-
-        addState(new IMUDrive(robot,"group", "050_drive"));
-        addState(new IMUTurn(robot,"group", "060_turn"));
-        addState(new IMUDrive(robot,"group", "070_drive"));
-        addState(new IMUTurn(robot,"group", "080_turn"));
-
-        addState(new IMUDrive(robot,"group", "010_drive"));
-        addState(new IMUTurn(robot,"group", "020_turn"));
-        addState(new IMUDrive(robot,"group", "030_drive"));
-        addState(new IMUTurn(robot,"group", "040_turn"));
-
-        addState(new IMUDrive(robot,"group", "050_drive"));
-        addState(new IMUTurn(robot,"group", "060_turn"));
-        addState(new IMUDrive(robot,"group", "070_drive"));
-        addState(new IMUTurn(robot,"group", "080_turn"));
-
-
-        addState(new IMUDrive(robot,"group", "010_drive"));
-        addState(new IMUTurn(robot,"group", "020_turn"));
-        addState(new IMUDrive(robot,"group", "030_drive"));
-        addState(new IMUTurn(robot,"group", "040_turn"));
-
-        addState(new IMUDrive(robot,"group", "050_drive"));
-        addState(new IMUTurn(robot,"group", "060_turn"));
-        addState(new IMUDrive(robot,"group", "090_drive"));
-        addState(new IMUTurn(robot,"group", "080_turn"));
+        addState(new VuforiaNavTesting(robot));
 
     }
 }

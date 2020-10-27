@@ -1,12 +1,32 @@
 package org.timecrafters.UltimateGoal;
 
+import android.app.Activity;
+
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.cyberarm.NeXT.StateConfiguration;
+import org.firstinspires.ftc.robotcore.external.ClassFactory;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
+import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
+import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaBase;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
+import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.timecrafters.TimeCraftersConfigurationTool.TimeCraftersConfiguration;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.firstinspires.ftc.robotcore.external.navigation.AngleUnit.DEGREES;
+import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XYZ;
+import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
+import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 
 public class Robot {
 
@@ -19,18 +39,29 @@ public class Robot {
     public TimeCraftersConfiguration stateConfiguration = new TimeCraftersConfiguration();
     public BNO055IMU imu;
 
-    //drive system
+    private WebcamName webcam;
+    private VuforiaLocalizer vuforia;
 
+    //drive system
     public DcMotor encoderFront;
     public DcMotor encoderLeft;
     public DcMotor encoderBack;
     public DcMotor encoderRight;
 
-    double BIAS_LEFT = -1.0;
-    double BIAS_RIGHT = -0.87;
+    static final double BIAS_LEFT = -1.0;
+    static final double BIAS_RIGHT = -0.87;
 
-    double Circumference_Encoder = Math.PI * 4;
-    int Counts_Per_Revolution = 8192;
+    //Conversion Constants
+    static final double ENCODER_CIRCUMFERENCE = Math.PI * 4;
+    static final int COUNTS_PER_REVOLUTION = 8192;
+    static final float mmPerInch = 25.4f;
+
+    // Inches Forward of axis of rotation
+    static final float CAMERA_FORWARD_DISPLACEMENT  = 4.0f;
+    // Inches above Ground
+    static final float CAMERA_VERTICAL_DISPLACEMENT = 8.0f;
+    // Inches Left of axis of rotation
+    static final float CAMERA_LEFT_DISPLACEMENT     = 0;
 
     //Robot Localizatoin
     private double locationX;
@@ -46,7 +77,20 @@ public class Robot {
     private int encoderRightPrevious = 0;
     private float rotationPrevious = 0;
 
+    //vuforia navigation
+    public boolean trackableVisible;
+    private VuforiaTrackables targetsUltimateGoal;
+    private List<VuforiaTrackable> trackables = new ArrayList<VuforiaTrackable>();
+    private OpenGLMatrix lastConfirmendLocation;
+
+    //TensorFlow Object Detection
+    public TFObjectDetector tfObjectDetector;
+    private static final float MINIMUM_CONFIDENCE = 0.8f;
+
+
     public void initHardware() {
+        webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
+
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
 //        encoderFront = hardwareMap.dcMotor.get("encoderFront");
         encoderLeft = hardwareMap.dcMotor.get("encoderLeft");
@@ -71,6 +115,65 @@ public class Robot {
         parameters.loggingEnabled = false;
 
         imu.initialize(parameters);
+
+        initVuforia();
+    }
+
+    private void initVuforia() {
+
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+
+        parameters.vuforiaLicenseKey = "Abmu1jv/////AAABmYzrcgDEi014nv+wD6PkEPVnOlV2pI3S9sGUMMR/X7hF72x20rP1JcVtsU0nI6VK0yUlYbCSA2k+yMo4hQmPDBvrqeqAgXKa57ilPhW5e1cB3BEevP+9VoJ9QYFhKA3JJTiuFS50WQeuFy3dp0gOPoqHL3XClRFZWbhzihyNnLXgXlKiq+i5GbfONECucQU2DgiuuxYlCaeNdUHl1X5C2pO80zZ6y7PYAp3p0ciXJxqfBoVAklhd69avaAE5Z84ctKscvcbxCS16lq81X7XgIFjshLoD/vpWa300llDG83+Y777q7b5v7gsUCZ6FiuK152Rd272HLuBRhoTXAt0ug9Baq5cz3sn0sAIEzSHX1nah";
+        parameters.cameraName = webcam;
+        parameters.useExtendedTracking = false;
+
+
+        vuforia = ClassFactory.getInstance().createVuforia(parameters);
+
+        targetsUltimateGoal = this.vuforia.loadTrackablesFromAsset("UltimateGoal");
+        VuforiaTrackable redTowerGoalTarget = targetsUltimateGoal.get(1);
+        redTowerGoalTarget.setName("Red Tower Goal Target");
+        VuforiaTrackable redAllianceTarget = targetsUltimateGoal.get(2);
+        redAllianceTarget.setName("Red Alliance Target");
+        VuforiaTrackable frontWallTarget = targetsUltimateGoal.get(4);
+        frontWallTarget.setName("Front Wall Target");
+
+        trackables.addAll(targetsUltimateGoal);
+
+        final float mmTargetHeight   = (6) * mmPerInch;
+
+        final float halfField = 72 * mmPerInch;
+        final float quadField  = 36 * mmPerInch;
+
+        redAllianceTarget.setLocation(OpenGLMatrix
+                .translation(0, -halfField, mmTargetHeight)
+                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 180)));
+        frontWallTarget.setLocation(OpenGLMatrix
+                .translation(-halfField, 0, mmTargetHeight)
+                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0 , 90)));
+        redTowerGoalTarget.setLocation(OpenGLMatrix
+                .translation(halfField, -quadField, mmTargetHeight)
+                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
+
+        OpenGLMatrix robotFromCamera = OpenGLMatrix
+                .translation(CAMERA_FORWARD_DISPLACEMENT * mmPerInch, CAMERA_LEFT_DISPLACEMENT * mmPerInch, CAMERA_VERTICAL_DISPLACEMENT * mmPerInch)
+                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, YZX, DEGREES, -90, 0, 0));
+
+        for (VuforiaTrackable trackable : trackables) {
+            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(robotFromCamera, parameters.cameraDirection);
+        }
+
+        targetsUltimateGoal.activate();
+    }
+
+    private void initTensorFlow() {
+        int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        TFObjectDetector.Parameters parameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
+        parameters.minResultConfidence = MINIMUM_CONFIDENCE;
+        tfObjectDetector = ClassFactory.getInstance().createTFObjectDetector(parameters, vuforia);
+        tfObjectDetector.loadModelFromAsset("UltimateGoal.tflite", "Quad", "Single");
     }
 
     public void setDrivePower(double powerLeft, double powerRight){
@@ -104,6 +207,28 @@ public class Robot {
         locationX += xChange;
         locationY += yChange;
 
+        trackableVisible = false;
+        for (VuforiaTrackable trackable : trackables) {
+            if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
+                OpenGLMatrix robotLocation = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
+
+                //TODO : make rotation update with Vuforia Nav.
+
+                //this is used for debugging purposes.
+                trackableVisible = true;
+
+                if (robotLocation != null) {
+                    lastConfirmendLocation = robotLocation;
+                }
+
+
+                VectorF translation = lastConfirmendLocation.getTranslation();
+                locationX = inchesToTicks(translation.get(1) / mmPerInch);
+                locationY = inchesToTicks( translation.get(0) / mmPerInch);
+
+                break;
+            }
+        }
     }
 
     public float getRotation() {
@@ -119,11 +244,11 @@ public class Robot {
     }
 
     public double ticksToInches(double ticks) {
-        return ticks * (Circumference_Encoder / Counts_Per_Revolution);
+        return ticks * (ENCODER_CIRCUMFERENCE / COUNTS_PER_REVOLUTION);
     }
 
     public double inchesToTicks(double inches) {
-        return inches * (Counts_Per_Revolution / Circumference_Encoder);
+        return inches * (COUNTS_PER_REVOLUTION / ENCODER_CIRCUMFERENCE);
     }
 
     public float getRelativeAngle(float reference, float current) {
@@ -137,5 +262,9 @@ public class Robot {
             relative -= 360;
         }
         return relative;
+    }
+
+    public void deactivateVuforia() {
+
     }
 }
