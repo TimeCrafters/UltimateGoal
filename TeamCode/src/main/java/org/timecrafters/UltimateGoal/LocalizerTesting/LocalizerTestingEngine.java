@@ -1,11 +1,12 @@
 package org.timecrafters.UltimateGoal.LocalizerTesting;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Robot;
 
-@Autonomous (name = "Localizer Test")
+@TeleOp(name = "Localizer Test")
 public class LocalizerTestingEngine extends CyberarmEngine {
 
     private Robot robot;

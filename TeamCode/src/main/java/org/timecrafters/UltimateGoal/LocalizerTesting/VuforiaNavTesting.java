@@ -17,6 +17,7 @@ public class VuforiaNavTesting extends CyberarmState {
 
     @Override
     public void exec() {
+        robot.setDrivePower(-0.2 * engine.gamepad1.left_stick_y, -0.2 * engine.gamepad1.right_stick_y);
         robot.updateLocation();
         X = robot.getLocationX();
         Y = robot.getLocationY();
@@ -27,8 +28,12 @@ public class VuforiaNavTesting extends CyberarmState {
     public void telemetry() {
         engine.telemetry.addData("Target Visible", robot.trackableVisible);
 
-        engine.telemetry.addData("X", X);
-        engine.telemetry.addData("Y", Y);
+        engine.telemetry.addData("Odo X", robot.ticksToInches(X));
+        engine.telemetry.addData("Odo Y", robot.ticksToInches(Y));
+
+        engine.telemetry.addData("Vis X", robot.visionX);
+        engine.telemetry.addData("Vis Y", robot.visionY);
+
         engine.telemetry.addData("Angle", angle);
     }
 }

@@ -57,16 +57,20 @@ public class Robot {
     static final float mmPerInch = 25.4f;
 
     // Inches Forward of axis of rotation
-    static final float CAMERA_FORWARD_DISPLACEMENT  = 4.0f;
+    static final float CAMERA_FORWARD_DISPLACEMENT  = 4.25f;
     // Inches above Ground
-    static final float CAMERA_VERTICAL_DISPLACEMENT = 8.0f;
+    static final float CAMERA_VERTICAL_DISPLACEMENT = 4.5f;
     // Inches Left of axis of rotation
-    static final float CAMERA_LEFT_DISPLACEMENT     = 0;
+    static final float CAMERA_LEFT_DISPLACEMENT     = 2f;
 
     //Robot Localizatoin
     private double locationX;
     private double locationY;
     private float rotation;
+
+    public double visionX;
+    public double visionY;
+
 
     public double traveledLeft;
     public double traveledRight;
@@ -183,10 +187,10 @@ public class Robot {
     }
 
     public void updateLocation(){
-        // IMU orientation is inverted to have clockwise be positive.
-        rotation = -imu.getAngularOrientation().firstAngle;
+        // orientation is inverted to have clockwise be positive.
+        float imuAngle = -imu.getAngularOrientation().firstAngle;
 
-        float rotationChange = rotation - rotationPrevious;
+        float rotationChange = imuAngle - rotationPrevious;
         int encoderLeftCurrent = encoderLeft.getCurrentPosition();
         int encoderRightCurrent = encoderRight.getCurrentPosition();
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
@@ -194,10 +198,11 @@ public class Robot {
 
         traveledLeft += Math.abs(encoderLeftChange);
         traveledRight += Math.abs(encoderRightChange);
+        rotation += rotationChange;
 
         encoderLeftPrevious = encoderLeftCurrent;
         encoderRightPrevious = encoderRightCurrent;
-        rotationPrevious = rotation;
+        rotationPrevious = imuAngle;
 
         double average = (encoderLeftChange+encoderRightChange)/2;
 
@@ -212,7 +217,7 @@ public class Robot {
             if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
                 OpenGLMatrix robotLocation = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
 
-                //TODO : make rotation update with Vuforia Nav.
+
 
                 //this is used for debugging purposes.
                 trackableVisible = true;
@@ -223,8 +228,19 @@ public class Robot {
 
 
                 VectorF translation = lastConfirmendLocation.getTranslation();
-                locationX = inchesToTicks(translation.get(1) / mmPerInch);
+                locationX = -inchesToTicks(translation.get(1) / mmPerInch);
                 locationY = inchesToTicks( translation.get(0) / mmPerInch);
+//                visionX = -translation.get(1) / mmPerInch;
+//                visionY = translation.get(0) / mmPerInch;
+
+
+                //For our tornament, it makes sence to make zero degrees towards the goal, orientation is inverted to have clockwise be positive.
+                Orientation rotation = Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
+                this.rotation = 90-rotation.thirdAngle;
+
+                if (this.rotation > 180) {
+                    this.rotation -= -180;
+                }
 
                 break;
             }
