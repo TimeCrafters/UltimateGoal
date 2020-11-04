@@ -28,7 +28,7 @@ import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XYZ;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 
-public class Robot {
+public class   Robot {
 
     private HardwareMap hardwareMap;
 
@@ -63,13 +63,14 @@ public class Robot {
     // Inches Left of axis of rotation
     static final float CAMERA_LEFT_DISPLACEMENT     = 2f;
 
-    //Robot Localizatoin
+    //Robot Localization
     private double locationX;
     private double locationY;
     private float rotation;
 
     public double visionX;
     public double visionY;
+    public float rawAngle;
 
 
     public double traveledLeft;
@@ -171,6 +172,8 @@ public class Robot {
         targetsUltimateGoal.activate();
     }
 
+    //TODO : Test range of Tensor Object identification.
+
     private void initTensorFlow() {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
@@ -189,8 +192,15 @@ public class Robot {
     public void updateLocation(){
         // orientation is inverted to have clockwise be positive.
         float imuAngle = -imu.getAngularOrientation().firstAngle;
-
         float rotationChange = imuAngle - rotationPrevious;
+
+        if (rotationChange > 180) {
+            rotationChange -= 360;
+        }
+        if (rotationChange < -180) {
+            rotationChange += 360;
+        }
+
         int encoderLeftCurrent = encoderLeft.getCurrentPosition();
         int encoderRightCurrent = encoderRight.getCurrentPosition();
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
@@ -211,6 +221,10 @@ public class Robot {
 
         locationX += xChange;
         locationY += yChange;
+
+        //TODO : add separate odometer and vision coordinates.
+
+        //TODO : make Odometer Coordinates set to vision coordinates on button push.
 
         trackableVisible = false;
         for (VuforiaTrackable trackable : trackables) {
@@ -234,7 +248,8 @@ public class Robot {
 //                visionY = translation.get(0) / mmPerInch;
 
 
-                //For our tornament, it makes sence to make zero degrees towards the goal, orientation is inverted to have clockwise be positive.
+                //For our tournament, it makes sense to make zero degrees towards the goal.
+                //Orientation is inverted to have clockwise be positive.
                 Orientation rotation = Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
                 this.rotation = 90-rotation.thirdAngle;
 
@@ -245,6 +260,14 @@ public class Robot {
                 break;
             }
         }
+
+        if (rotation > 180) {
+            rotation -= 360;
+        }
+        if (rotation < -180) {
+            rotation += 360;
+        }
+
     }
 
     public float getRotation() {
@@ -259,12 +282,22 @@ public class Robot {
         return locationY;
     }
 
+    public float getAngleToPosition (double x, double y) {
+        double differenceX = x- getLocationX();
+        double differenceY = y- getLocationY();
+        double angle = Math.toDegrees(Math.atan2(differenceX, differenceY ));
+
+        return (float) angle;
+
+    }
+
     public double ticksToInches(double ticks) {
         return ticks * (ENCODER_CIRCUMFERENCE / COUNTS_PER_REVOLUTION);
     }
 
     public double inchesToTicks(double inches) {
         return inches * (COUNTS_PER_REVOLUTION / ENCODER_CIRCUMFERENCE);
+
     }
 
     public float getRelativeAngle(float reference, float current) {
