@@ -21,7 +21,7 @@ public class TestingEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        addState(new LauncherTest());
+        addState(new WelcomeToJankyTown());
     }
 
 

@@ -21,6 +21,15 @@ public class LocalizerTestingEngine extends CyberarmEngine {
     @Override
     public void setup() {
         addState(new VuforiaNavTesting(robot));
+//        addState(new DriveToPosition(robot, "DtoP", "d1"));
+//        addState(new DriveToPosition(robot, "DtoP", "d2"));
 
+    }
+
+    @Override
+    public void stop() {
+        super.stop();
+        robot.saveRecording();
+        robot.deactivateVuforia();
     }
 }

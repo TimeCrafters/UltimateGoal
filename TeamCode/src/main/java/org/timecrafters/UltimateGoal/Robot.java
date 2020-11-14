@@ -1,6 +1,8 @@
 package org.timecrafters.UltimateGoal;
 
 import android.app.Activity;
+import android.os.Environment;
+import android.util.Log;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -19,7 +21,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefau
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.timecrafters.TimeCraftersConfigurationTool.TimeCraftersConfiguration;
+import org.timecrafters.TimeCraftersConfigurationTool.backend.Backend;
+import org.timecrafters.TimeCraftersConfigurationTool.backend.TAC;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,20 +64,21 @@ public class   Robot {
     static final float mmPerInch = 25.4f;
 
     // Inches Forward of axis of rotation
-    static final float CAMERA_FORWARD_DISPLACEMENT  = 4.25f;
+    static final float CAMERA_FORWARD_DISPLACEMENT  = 13f;
     // Inches above Ground
     static final float CAMERA_VERTICAL_DISPLACEMENT = 4.5f;
     // Inches Left of axis of rotation
     static final float CAMERA_LEFT_DISPLACEMENT     = 2f;
 
     //Robot Localization
-    private double locationX;
-    private double locationY;
+    public double locationX;
+    public double locationY;
     private float rotation;
 
     public double visionX;
     public double visionY;
     public float rawAngle;
+    private String TestingRecord = "X,Y,Angle";
 
 
     public double traveledLeft;
@@ -122,6 +130,10 @@ public class   Robot {
         imu.initialize(parameters);
 
         initVuforia();
+
+        rotation = stateConfiguration.variable("system", "startPos", "direction").value();
+        locationX = stateConfiguration.variable("system", "startPos", "x").value();
+        locationY = stateConfiguration.variable("system", "startPos", "y").value();
     }
 
     private void initVuforia() {
@@ -192,7 +204,7 @@ public class   Robot {
     public void updateLocation(){
         // orientation is inverted to have clockwise be positive.
         float imuAngle = -imu.getAngularOrientation().firstAngle;
-        float rotationChange = imuAngle - rotationPrevious;
+        double rotationChange = imuAngle - rotationPrevious;
 
         if (rotationChange > 180) {
             rotationChange -= 360;
@@ -222,16 +234,21 @@ public class   Robot {
         locationX += xChange;
         locationY += yChange;
 
-        //TODO : add separate odometer and vision coordinates.
 
-        //TODO : make Odometer Coordinates set to vision coordinates on button push.
+        if (rotation > 180) {
+            rotation -= 360;
+        }
+        if (rotation < -180) {
+            rotation += 360;
+        }
 
+    }
+
+    public void syncWithVuforia() {
         trackableVisible = false;
         for (VuforiaTrackable trackable : trackables) {
             if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
                 OpenGLMatrix robotLocation = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
-
-
 
                 //this is used for debugging purposes.
                 trackableVisible = true;
@@ -244,8 +261,7 @@ public class   Robot {
                 VectorF translation = lastConfirmendLocation.getTranslation();
                 locationX = -inchesToTicks(translation.get(1) / mmPerInch);
                 locationY = inchesToTicks( translation.get(0) / mmPerInch);
-//                visionX = -translation.get(1) / mmPerInch;
-//                visionY = translation.get(0) / mmPerInch;
+
 
 
                 //For our tournament, it makes sense to make zero degrees towards the goal.
@@ -260,14 +276,6 @@ public class   Robot {
                 break;
             }
         }
-
-        if (rotation > 180) {
-            rotation -= 360;
-        }
-        if (rotation < -180) {
-            rotation += 360;
-        }
-
     }
 
     public float getRotation() {
@@ -280,6 +288,12 @@ public class   Robot {
 
     public double getLocationY() {
         return locationY;
+    }
+
+    public void setCurrentPosition(float rotation, double x, double y) {
+        this.rotation = rotation;
+        locationX = x;
+        locationY = y;
     }
 
     public float getAngleToPosition (double x, double y) {
@@ -313,7 +327,53 @@ public class   Robot {
         return relative;
     }
 
-    public void deactivateVuforia() {
+    public void driveAtAngle(float angle, double power) {
 
+        double relativeAngle = getRelativeAngle(angle, getRotation());
+
+        //calculate how the power of each motor should be adjusted to make the robot curve
+        //towards the target angle
+        //--------------------------------------------------------------------------------------
+
+        double turnPowerCorrection = Math.pow(0.03 * relativeAngle, 3) + 0.02 * relativeAngle;
+
+        //Adjusts power based on degrees off from target.
+        double leftPower = power - turnPowerCorrection;
+        double rightPower = power + turnPowerCorrection;
+        //--------------------------------------------------------------------------------------
+
+
+        //calculates speed adjuster that slows the motors to be closer to the BasePower while
+        // maintaining the power ratio nesesary to execute the turn.
+        double powerAdjust = ((2 * power) / (Math.abs(leftPower) + Math.abs(rightPower)));
+
+        setDrivePower(leftPower * powerAdjust, rightPower * powerAdjust);
+    }
+
+    public void record() {
+        TestingRecord+="\n"+locationX+","+locationY+","+rotation;
+    }
+
+    public void saveRecording() {
+        writeToFile(Environment.getExternalStorageDirectory().getAbsolutePath()+File.separator+"TimeCrafters_TestingRecord"+File.separator+"RobotTestingRecord.txt", TestingRecord);
+    }
+
+    public boolean writeToFile(String filePath, String content) {
+        try {
+
+            FileWriter writer = new FileWriter(filePath);
+            writer.write(content);
+            writer.close();
+
+            return true;
+
+        } catch (IOException e) {
+            Log.e("RecordTest", e.getLocalizedMessage());
+            return false;
+        }
+    }
+
+    public void deactivateVuforia() {
+        targetsUltimateGoal.deactivate();
     }
 }
