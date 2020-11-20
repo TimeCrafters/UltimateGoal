@@ -1,9 +1,6 @@
 package org.timecrafters.UltimateGoal.LocalizerTesting;
 
-import android.util.Log;
-
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.TimeCraftersConfigurationTool.backend.Backend;
 import org.timecrafters.UltimateGoal.Robot;
 
 public class IMUDrive extends CyberarmState {
@@ -41,7 +38,7 @@ public class IMUDrive extends CyberarmState {
         }
 
         angleTarget=robot.getRotation();
-        tickStart = robot.encoderRight.getCurrentPosition();
+        tickStart = robot.driveFrontRight.getCurrentPosition();
     }
 
     @Override
@@ -49,7 +46,7 @@ public class IMUDrive extends CyberarmState {
 
         robot.updateLocation();
 
-        int ticksTraveled = Math.abs( robot.encoderRight.getCurrentPosition()-tickStart);
+        int ticksTraveled = Math.abs( robot.driveFrontRight.getCurrentPosition()-tickStart);
         if (ticksTraveled > tickTarget) {
             robot.setDrivePower(0,0);
             sleep(finishDelay);

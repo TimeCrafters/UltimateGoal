@@ -48,7 +48,7 @@ public class DriveToPosition extends CyberarmState {
 //            }
 
         if (distanceRemaining < tolerance) {
-            robot.setDrivePower(0, 0);
+            robot.setDrivePower(0, 0, 0, 0);
             setHasFinished(true);
         } else {
             robot.driveAtAngle(robot.getAngleToPosition(targetX, targetY), power);

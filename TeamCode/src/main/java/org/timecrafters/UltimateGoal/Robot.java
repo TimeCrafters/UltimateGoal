@@ -1,6 +1,5 @@
 package org.timecrafters.UltimateGoal;
 
-import android.app.Activity;
 import android.os.Environment;
 import android.util.Log;
 
@@ -14,15 +13,12 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
-import org.firstinspires.ftc.robotcore.external.navigation.VuforiaBase;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 import org.timecrafters.TimeCraftersConfigurationTool.TimeCraftersConfiguration;
-import org.timecrafters.TimeCraftersConfigurationTool.backend.Backend;
-import org.timecrafters.TimeCraftersConfigurationTool.backend.TAC;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -50,13 +46,16 @@ public class   Robot {
     private VuforiaLocalizer vuforia;
 
     //drive system
-    public DcMotor encoderFront;
-    public DcMotor encoderLeft;
-    public DcMotor encoderBack;
-    public DcMotor encoderRight;
 
-    static final double BIAS_LEFT = -1.0;
-    static final double BIAS_RIGHT = -0.87;
+    public DcMotor driveBackLeft;
+    public DcMotor driveFrontLeft;
+    public DcMotor driveBackRight;
+    public DcMotor driveFrontRight;
+
+    static final double BIAS_FRONT_LEFT = 1;
+    static final double BIAS_FRONT_RIGHT = 1;
+    static final double BIAS_BACK_LEFT = 1;
+    static final double BIAS_BACK_RIGHT = 1;
 
     //Conversion Constants
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 4;
@@ -84,7 +83,7 @@ public class   Robot {
     public double traveledLeft;
     public double traveledRight;
 
-    private int encoderFrontPrevious = 0;
+
     private int encoderLeftPrevious = 0;
     private int encoderBackPrevious = 0;
     private int encoderRightPrevious = 0;
@@ -105,20 +104,21 @@ public class   Robot {
         webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
 
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
-//        encoderFront = hardwareMap.dcMotor.get("encoderFront");
-        encoderLeft = hardwareMap.dcMotor.get("encoderLeft");
-//        encoderBack = hardwareMap.dcMotor.get("encoderBack");
-        encoderRight = hardwareMap.dcMotor.get("encoderRight");
 
-        encoderLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        encoderRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        encoderLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        encoderRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        driveFrontLeft = hardwareMap.dcMotor.get("driveFrontLeft");
+        driveFrontRight = hardwareMap.dcMotor.get("driveFrontRight");
+        driveBackLeft = hardwareMap.dcMotor.get("driveBackLeft");
+        driveBackRight = hardwareMap.dcMotor.get("driveBackRight");
 
-        encoderRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        driveFrontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        driveFrontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        driveFrontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        driveFrontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        driveFrontRight.setDirection(DcMotorSimple.Direction.REVERSE);
         
-        encoderLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        encoderRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        driveFrontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        driveFrontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -184,7 +184,9 @@ public class   Robot {
         targetsUltimateGoal.activate();
     }
 
-    //TODO : Test range of Tensor Object identification.
+    public void deactivateVuforia() {
+        targetsUltimateGoal.deactivate();
+    }
 
     private void initTensorFlow() {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
@@ -193,12 +195,6 @@ public class   Robot {
         parameters.minResultConfidence = MINIMUM_CONFIDENCE;
         tfObjectDetector = ClassFactory.getInstance().createTFObjectDetector(parameters, vuforia);
         tfObjectDetector.loadModelFromAsset("UltimateGoal.tflite", "Quad", "Single");
-    }
-
-    public void setDrivePower(double powerLeft, double powerRight){
-        encoderLeft.setPower(powerLeft * BIAS_LEFT);
-        encoderRight.setPower(powerRight * BIAS_RIGHT);
-
     }
 
     public void updateLocation(){
@@ -213,8 +209,8 @@ public class   Robot {
             rotationChange += 360;
         }
 
-        int encoderLeftCurrent = encoderLeft.getCurrentPosition();
-        int encoderRightCurrent = encoderRight.getCurrentPosition();
+        int encoderLeftCurrent = driveFrontLeft.getCurrentPosition();
+        int encoderRightCurrent = driveFrontRight.getCurrentPosition();
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
         double encoderRightChange = encoderRightCurrent - encoderRightPrevious;
 
@@ -327,6 +323,65 @@ public class   Robot {
         return relative;
     }
 
+    //Drive Functions
+    public void setDrivePower(double powerFrontLeft, double powerFrontRight, double powerBackLeft, double powerBackRight){
+        driveFrontLeft.setPower(powerFrontLeft * BIAS_FRONT_LEFT);
+        driveFrontRight.setPower(powerFrontLeft * BIAS_FRONT_RIGHT);
+        driveBackLeft.setPower(powerBackLeft * BIAS_BACK_LEFT);
+        driveBackLeft.setPower(powerBackRight * BIAS_BACK_RIGHT);
+    }
+
+    public double[] getMecanumPowers(float degreesDirectionMotion, double scalar, float degreesDirectionFace) {
+        double rad = Math.toRadians(degreesDirectionMotion);
+        double y = scalar * Math.cos(rad);
+        double x = scalar * Math.sin(rad);
+
+        //TODO: Try swapping p and q if left and right seam incorrect
+        double p = y + x;
+        double q = y - x;
+
+        float relativeRotation =  getRelativeAngle(degreesDirectionFace, rotation);
+        double turnCorrection = Math.pow(0.03 * relativeRotation, 3) + 0.02 * relativeRotation;
+
+        double powerForwardRight = q - turnCorrection;
+        double powerForwardLeft = p + turnCorrection;
+        double powerBackRight = p - turnCorrection;
+        double powerBackLeft = q + turnCorrection;
+
+
+        // The "extreme" is the power value that is furthest from zero. When this values exceed the
+        // -1 to 1 power range, dividing the powers by the "extreme" scales everything back into the
+        // workable range without altering the final motion vector;
+
+        double extreme = Math.max(
+                Math.max(Math.abs(powerForwardRight),Math.abs(powerForwardLeft)),
+                Math.max(Math.abs(powerBackRight),Math.abs(powerBackLeft)));
+
+        if (extreme > 1) {
+            powerForwardRight = powerForwardRight/extreme;
+            powerForwardLeft = powerForwardLeft/extreme;
+            powerBackRight = powerBackRight/extreme;
+            powerBackLeft = powerBackLeft/extreme;
+        }
+
+        double[] powers = {powerForwardLeft, powerForwardRight, powerBackLeft, powerBackRight};
+
+        return powers;
+    }
+
+    public double[] getFacePowers(float direction, double power) {
+        double left = power;
+        double right = -power;
+
+        if (getRelativeAngle(direction, rotation) > 0) {
+            left *= -1;
+            right *= -1;
+        }
+        double[] powers = {left,right};
+        return powers;
+    }
+
+    //This function should not be used
     public void driveAtAngle(float angle, double power) {
 
         double relativeAngle = getRelativeAngle(angle, getRotation());
@@ -347,9 +402,10 @@ public class   Robot {
         // maintaining the power ratio nesesary to execute the turn.
         double powerAdjust = ((2 * power) / (Math.abs(leftPower) + Math.abs(rightPower)));
 
-        setDrivePower(leftPower * powerAdjust, rightPower * powerAdjust);
+//        setDrivePower(leftPower * powerAdjust, rightPower * powerAdjust);
     }
 
+    //Data Recording
     public void record() {
         TestingRecord+="\n"+locationX+","+locationY+","+rotation;
     }
@@ -373,7 +429,5 @@ public class   Robot {
         }
     }
 
-    public void deactivateVuforia() {
-        targetsUltimateGoal.deactivate();
-    }
+
 }
