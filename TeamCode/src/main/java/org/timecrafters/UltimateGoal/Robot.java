@@ -74,11 +74,11 @@ public class   Robot {
     public double locationY;
     private float rotation;
 
+    //Debugging
     public double visionX;
     public double visionY;
     public float rawAngle;
     private String TestingRecord = "X,Y,Angle";
-
 
     public double traveledLeft;
     public double traveledRight;

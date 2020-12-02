@@ -47,7 +47,7 @@ public class MecanumFunctionTest extends CyberarmState {
             double[] powers = robot.getMecanumPowers(leftJoystickDegrees, leftJoystickMagnitude, leftJoystickDegrees);
             powerFrontLeft = powers[0];
             powerFrontRight = powers[1];
-            powerBackLeft = powers[2];
+             powerBackLeft = powers[2];
             powerBackRight = powers[3];
         } else {
             if (leftJoystickMagnitude == 0) {
