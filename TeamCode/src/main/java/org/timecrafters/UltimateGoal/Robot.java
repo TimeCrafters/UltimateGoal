@@ -340,7 +340,9 @@ public class   Robot {
         driveBackRight.setPower(powerBackRight * BIAS_BACK_RIGHT);
     }
 
-    //returns an array of the powers necessary to execute the provided motion. The order of the motors
+    //returns an array of the powers necessary to execute the provided motion. "degreesDirectionMotion"
+    //is the angle relative to the field that the robot should drive at. "degreesDirectionFace" is
+    //the angle the robot should face relative to the field. The order of the output powers is
     //is ForwardLeft, ForwardRight, BackLeft, BackRight
     public double[] getMecanumPowers(float degreesDirectionMotion, double scalar, float degreesDirectionFace) {
         double rad = Math.toRadians(getRelativeAngle(degreesDirectionFace,degreesDirectionMotion));
