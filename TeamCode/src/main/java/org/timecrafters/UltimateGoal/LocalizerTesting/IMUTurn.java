@@ -54,10 +54,10 @@ public class IMUTurn extends CyberarmState {
             turnDirection = OptimalDirection;
         }
 
-        robot.setDrivePower(power * turnDirection,-power * turnDirection);
+//        robot.setDrivePower(power * turnDirection,-power * turnDirection);
 
         if (robot.getRotation() > angleTarget - angleAllowance && robot.getRotation() < angleTarget + angleAllowance ) {
-            robot.setDrivePower(0,0);
+//            robot.setDrivePower(0,0);
             setHasFinished(true);
         }
 

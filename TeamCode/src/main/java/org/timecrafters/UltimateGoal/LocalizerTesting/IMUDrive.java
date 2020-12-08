@@ -48,7 +48,7 @@ public class IMUDrive extends CyberarmState {
 
         int ticksTraveled = Math.abs( robot.driveFrontRight.getCurrentPosition()-tickStart);
         if (ticksTraveled > tickTarget) {
-            robot.setDrivePower(0,0);
+//            robot.setDrivePower(0,0);
             sleep(finishDelay);
             setHasFinished(true);
         } else {
@@ -62,7 +62,7 @@ public class IMUDrive extends CyberarmState {
 
             double powerAdjust = ((2 * power) / (Math.abs(leftPower) + Math.abs(rightPower)));
 
-            robot.setDrivePower(powerAdjust*leftPower, powerAdjust*rightPower);
+//            robot.setDrivePower(powerAdjust*leftPower, powerAdjust*rightPower);
         }
     }
 

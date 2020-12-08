@@ -57,6 +57,9 @@ public class   Robot {
     static final double BIAS_BACK_LEFT = 1;
     static final double BIAS_BACK_RIGHT = 1;
 
+    static final double FINE_CORRECTION = 0.01;
+    static final double LARGE_CORRECTION = 0.01 ;
+
     //Conversion Constants
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 4;
     static final int COUNTS_PER_REVOLUTION = 8192;
@@ -78,7 +81,8 @@ public class   Robot {
     public double visionX;
     public double visionY;
     public float rawAngle;
-    private String TestingRecord = "X,Y,Angle";
+//    private String TestingRecord = "FrontLeft,FrontRight,BackLeft,BackRight";
+    private String TestingRecord = "Rotation";
 
     public double traveledLeft;
     public double traveledRight;
@@ -101,7 +105,7 @@ public class   Robot {
 
 
     public void initHardware() {
-        webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
+//        webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
 
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
 
@@ -110,15 +114,13 @@ public class   Robot {
         driveBackLeft = hardwareMap.dcMotor.get("driveBackLeft");
         driveBackRight = hardwareMap.dcMotor.get("driveBackRight");
 
-        driveFrontLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        driveFrontRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        driveFrontLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        driveFrontRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-
         driveFrontRight.setDirection(DcMotorSimple.Direction.REVERSE);
-        
+        driveBackRight.setDirection(DcMotorSimple.Direction.REVERSE);
+
         driveFrontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         driveFrontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        driveBackLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        driveBackRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -129,7 +131,7 @@ public class   Robot {
 
         imu.initialize(parameters);
 
-        initVuforia();
+//        initVuforia();
 
         rotation = stateConfiguration.variable("system", "startPos", "direction").value();
         locationX = stateConfiguration.variable("system", "startPos", "x").value();
@@ -197,6 +199,7 @@ public class   Robot {
         tfObjectDetector.loadModelFromAsset("UltimateGoal.tflite", "Quad", "Single");
     }
 
+    //run this in every exec to track the robot's location.
     public void updateLocation(){
         // orientation is inverted to have clockwise be positive.
         float imuAngle = -imu.getAngularOrientation().firstAngle;
@@ -286,12 +289,14 @@ public class   Robot {
         return locationY;
     }
 
+    //Manually set the position of the robot on the field.
     public void setCurrentPosition(float rotation, double x, double y) {
         this.rotation = rotation;
         locationX = x;
         locationY = y;
     }
 
+    //returns the angle from the robot's current position to the given target position.
     public float getAngleToPosition (double x, double y) {
         double differenceX = x- getLocationX();
         double differenceY = y- getLocationY();
@@ -301,6 +306,7 @@ public class   Robot {
 
     }
 
+    //Unit conversion
     public double ticksToInches(double ticks) {
         return ticks * (ENCODER_CIRCUMFERENCE / COUNTS_PER_REVOLUTION);
     }
@@ -310,6 +316,9 @@ public class   Robot {
 
     }
 
+    //Returns the angle between two angles, with positive angles indicating that the reference is
+    //to the right (clockwise) of the current. Negative angles indicate that the reference is to the
+    //left.
     public float getRelativeAngle(float reference, float current) {
         float relative = current - reference;
 
@@ -326,13 +335,15 @@ public class   Robot {
     //Drive Functions
     public void setDrivePower(double powerFrontLeft, double powerFrontRight, double powerBackLeft, double powerBackRight){
         driveFrontLeft.setPower(powerFrontLeft * BIAS_FRONT_LEFT);
-        driveFrontRight.setPower(powerFrontLeft * BIAS_FRONT_RIGHT);
+        driveFrontRight.setPower(powerFrontRight * BIAS_FRONT_RIGHT);
         driveBackLeft.setPower(powerBackLeft * BIAS_BACK_LEFT);
-        driveBackLeft.setPower(powerBackRight * BIAS_BACK_RIGHT);
+        driveBackRight.setPower(powerBackRight * BIAS_BACK_RIGHT);
     }
 
+    //returns an array of the powers necessary to execute the provided motion. The order of the motors
+    //is ForwardLeft, ForwardRight, BackLeft, BackRight
     public double[] getMecanumPowers(float degreesDirectionMotion, double scalar, float degreesDirectionFace) {
-        double rad = Math.toRadians(degreesDirectionMotion);
+        double rad = Math.toRadians(getRelativeAngle(degreesDirectionFace,degreesDirectionMotion));
         double y = scalar * Math.cos(rad);
         double x = scalar * Math.sin(rad);
 
@@ -341,12 +352,12 @@ public class   Robot {
         double q = y - x;
 
         float relativeRotation =  getRelativeAngle(degreesDirectionFace, rotation);
-        double turnCorrection = Math.pow(0.03 * relativeRotation, 3) + 0.02 * relativeRotation;
+        double turnCorrection = Math.pow(LARGE_CORRECTION * relativeRotation, 3) + FINE_CORRECTION * relativeRotation;
 
-        double powerForwardRight = q - turnCorrection;
-        double powerForwardLeft = p + turnCorrection;
-        double powerBackRight = p - turnCorrection;
-        double powerBackLeft = q + turnCorrection;
+        double powerForwardRight = q + turnCorrection;
+        double powerForwardLeft = p - turnCorrection;
+        double powerBackRight = p + turnCorrection;
+        double powerBackLeft = q - turnCorrection;
 
 
         // The "extreme" is the power value that is furthest from zero. When this values exceed the
@@ -369,14 +380,19 @@ public class   Robot {
         return powers;
     }
 
+    //
     public double[] getFacePowers(float direction, double power) {
-        double left = power;
-        double right = -power;
+        double relativeAngle = getRelativeAngle(direction, rotation);
+        double scaler = Math.pow(LARGE_CORRECTION * relativeAngle, 3) + FINE_CORRECTION * relativeAngle;
 
-        if (getRelativeAngle(direction, rotation) > 0) {
-            left *= -1;
-            right *= -1;
-        }
+        double left = -power * scaler;
+        double right = power *scaler;
+
+
+//        if (relativeAngle > 0) {
+//            left *= -1;
+//            right *= -1;
+//        }
         double[] powers = {left,right};
         return powers;
     }
@@ -406,8 +422,12 @@ public class   Robot {
     }
 
     //Data Recording
+//    public void record(double frontLeft, double frontRight, double backLeft, double backRight) {
+//        TestingRecord+="\n"+frontLeft+","+frontRight+","+backLeft+","+backRight;
+//    }
+
     public void record() {
-        TestingRecord+="\n"+locationX+","+locationY+","+rotation;
+        TestingRecord+="\n"+rotation;
     }
 
     public void saveRecording() {

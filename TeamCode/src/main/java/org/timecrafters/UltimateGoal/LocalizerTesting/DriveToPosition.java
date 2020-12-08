@@ -37,7 +37,7 @@ public class DriveToPosition extends CyberarmState {
     @Override
     public void exec() {
         robot.updateLocation();
-        robot.record();
+//        robot.record();
 
         double distanceRemaining = Math.hypot(targetX - robot.getLocationX(), targetY - robot.getLocationY());
 

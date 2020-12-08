@@ -24,7 +24,7 @@ public class VuforiaNavTesting extends CyberarmState {
         }
         
         robot.updateLocation();
-        robot.record();
+//        robot.record();
 
         double joystickX = engine.gamepad1.right_stick_x;
         double joystickY = engine.gamepad1.right_stick_y;

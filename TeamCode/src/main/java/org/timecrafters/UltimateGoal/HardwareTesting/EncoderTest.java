@@ -12,10 +12,11 @@ public class EncoderTest extends CyberarmState {
         this.robot = robot;
     }
 
+
     @Override
     public void exec() {
 
-        robot.setDrivePower(1, 1,1,1);
+        robot.setDrivePower(0.1, 0.1,0.1,0.1);
 
     }
 }

@@ -1,13 +1,14 @@
-package org.timecrafters.UltimateGoal.HardwareTesting;
+package org.timecrafters.UltimateGoal.Calibration;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
+import org.timecrafters.UltimateGoal.HardwareTesting.MecanumFunctionTest;
 import org.timecrafters.UltimateGoal.Robot;
 
-@TeleOp (name = "Encoder test", group = "test")
-public class TestingEngine extends CyberarmEngine {
-
+@TeleOp (name = "Calibration", group = "test")
+public class CalibrationEngine extends CyberarmEngine {
     private Robot robot;
 
     @Override
@@ -18,15 +19,8 @@ public class TestingEngine extends CyberarmEngine {
     }
 
 
-
     @Override
     public void setup() {
-        addState(new MecanumFunctionTest(robot));
+        addState(new MechanumBiasCalibrator(robot));
     }
-
-//    @Override
-//    public void stop() {
-//        robot.saveRecording();
-//        super.stop();
-//    }
 }

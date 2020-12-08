@@ -9,7 +9,7 @@ import java.util.ArrayList;
 public class MechanumBiasCalibrator extends CyberarmState {
 
     private Robot robot;
-    private ArrayList<double[]> Powers;
+    private ArrayList<double[]> Powers = new ArrayList<>();
     private double BiasFR;
     private double BiasFL;
     private double BiasBR;
@@ -26,11 +26,17 @@ public class MechanumBiasCalibrator extends CyberarmState {
         robot.updateLocation();
 
         if (engine.gamepad1.x) {
-            double[] mecanumPowers = robot.getMecanumPowers(0, 1, 0);
+            double[] mecanumPowers = robot.getMecanumPowers(-45, 0.5, 0);
 
-            //TODO: add motors when they exist.
+            
+            robot.driveFrontLeft.setPower(mecanumPowers[0]);
+            robot.driveFrontRight.setPower(mecanumPowers[1]);
+            robot.driveBackLeft.setPower(mecanumPowers[2]);
+            robot.driveBackRight.setPower(mecanumPowers[3]);
 
             Powers.add(mecanumPowers);
+        } else {
+            robot.setDrivePower(0,0,0,0 );
         }
 
         if (engine.gamepad1.y && !hasCalculated) {
@@ -42,10 +48,10 @@ public class MechanumBiasCalibrator extends CyberarmState {
             double sumBL = 0;
 
             for (double[] powers : Powers) {
-                sumFR+= powers[0];
-                sumFL+= powers[1];
-                sumBR+= powers[2];
-                sumBL+= powers[3];
+                sumFL+= Math.abs(powers[0]);
+                sumFR+= Math.abs(powers[1]);
+                sumBL+= Math.abs(powers[2]);
+                sumBR+= Math.abs(powers[3]);
             }
 
             int length = Powers.size();
@@ -54,9 +60,24 @@ public class MechanumBiasCalibrator extends CyberarmState {
             BiasBR = sumBR / length;
             BiasBL = sumBL / length;
 
+            double max = Math.max(Math.max(BiasFL,BiasFR),Math.max(BiasBL,BiasBR));
+
+            BiasFL = BiasFL /max;
+            BiasFR = BiasFR /max;
+            BiasBL = BiasBL /max;
+            BiasBR = BiasBR /max;
+
         } else if (!engine.gamepad1.y) {
             hasCalculated = false;
         }
 
+    }
+
+    @Override
+    public void telemetry() {
+        engine.telemetry.addData("FrontLeft", BiasFL);
+        engine.telemetry.addData("FrontRight", BiasFR);
+        engine.telemetry.addData("BackLeft", BiasBL);
+        engine.telemetry.addData("BackRight", BiasBR);
     }
 }

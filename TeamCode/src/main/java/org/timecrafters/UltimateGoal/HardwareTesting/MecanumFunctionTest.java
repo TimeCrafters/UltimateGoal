@@ -11,10 +11,10 @@ public class MecanumFunctionTest extends CyberarmState {
     private double leftJoystickMagnitude;
     private float rightJoystickDegrees;
     private double rightJoystickMagnitude;
-    private double powerFrontLeft;
-    private double powerFrontRight;
-    private double powerBackLeft;
-    private double powerBackRight;
+    private double powerFrontLeft=0;
+    private double powerFrontRight=0;
+    private double powerBackLeft=0;
+    private double powerBackRight=0;
 
     private static double TURN_POWER_SCALE = 0.5;
 
@@ -32,23 +32,25 @@ public class MecanumFunctionTest extends CyberarmState {
         leftJoystickDegrees = (float) Math.toDegrees(Math.atan2(leftJoystickX, -leftJoystickY));
         leftJoystickMagnitude = Math.hypot(leftJoystickX, leftJoystickY);
 
-        double rightJoystickX = engine.gamepad1.left_stick_x;
-        double rightJoystickY = engine.gamepad1.left_stick_y;
+        double rightJoystickX = engine.gamepad1.right_stick_x;
+        double rightJoystickY = engine.gamepad1.right_stick_y;
 
         rightJoystickDegrees = (float) Math.toDegrees(Math.atan2(rightJoystickX, -rightJoystickY));
         rightJoystickMagnitude = Math.hypot(rightJoystickX, rightJoystickY);
-
+//
         powerFrontLeft = 0;
         powerFrontRight = 0;
         powerBackLeft = 0;
         powerBackRight = 0;
 
         if (rightJoystickMagnitude == 0) {
-            double[] powers = robot.getMecanumPowers(leftJoystickDegrees, leftJoystickMagnitude, leftJoystickDegrees);
-            powerFrontLeft = powers[0];
-            powerFrontRight = powers[1];
-             powerBackLeft = powers[2];
-            powerBackRight = powers[3];
+            if (leftJoystickMagnitude !=0) {
+                double[] powers = robot.getMecanumPowers(leftJoystickDegrees, leftJoystickMagnitude, leftJoystickDegrees);
+                powerFrontLeft = powers[0];
+                powerFrontRight = powers[1];
+                powerBackLeft = powers[2];
+                powerBackRight = powers[3];
+            }
         } else {
             if (leftJoystickMagnitude == 0) {
                 double[] powers =  robot.getFacePowers(rightJoystickDegrees, rightJoystickMagnitude);
@@ -65,6 +67,8 @@ public class MecanumFunctionTest extends CyberarmState {
             }
         }
 
+//        robot.record(powerFrontLeft,powerFrontRight,powerBackLeft,powerBackRight);
+
         robot.setDrivePower(powerFrontLeft,powerFrontRight,powerBackLeft,powerBackRight);
 
     }
@@ -77,11 +81,8 @@ public class MecanumFunctionTest extends CyberarmState {
         engine.telemetry.addData("Mag", leftJoystickMagnitude);
 
         engine.telemetry.addLine("Right Joystick");
-        engine.telemetry.addData("Angle", leftJoystickDegrees);
-        engine.telemetry.addData("Mag", leftJoystickMagnitude);
+        engine.telemetry.addData("Angle", rightJoystickDegrees);
+        engine.telemetry.addData("Mag", rightJoystickMagnitude);
 
-//        engine.telemetry.addLine("");
-//        engine.telemetry.addData("Front", robot.encoderFront);
-//        engine.telemetry.addData("Back", robot.encoderBack);
     }
 }
