@@ -28,7 +28,7 @@ public class StalPowerCalibrator extends CyberarmState {
 
         for (DcMotor motor : Motors) {
             motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-            motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         }
     }
 
@@ -51,7 +51,7 @@ public class StalPowerCalibrator extends CyberarmState {
                 sleep(1000);
                 for (DcMotor motor : Motors) {
                     motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-                    motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                    motor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
                 }
             }
         }

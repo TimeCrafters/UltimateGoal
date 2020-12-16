@@ -7,6 +7,7 @@ import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -47,10 +48,19 @@ public class   Robot {
 
     //drive system
 
-    public DcMotor driveBackLeft;
-    public DcMotor driveFrontLeft;
-    public DcMotor driveBackRight;
-    public DcMotor driveFrontRight;
+    public DriveMotor driveFrontLeft;
+    public DriveMotor driveBackLeft;
+    public DriveMotor driveFrontRight;
+    public DriveMotor driveBackRight;
+
+    public DcMotor encoderLeft;
+    public DcMotor encoderRight;
+    public DcMotor encoderBack;
+
+    private int brakePosFrontLeft;
+    private int brakePosFrontRight;
+    private int brakePosBackLeft;
+    private int brakePosBackRight;
 
     static final double BIAS_FRONT_LEFT = 1;
     static final double BIAS_FRONT_RIGHT = 1;
@@ -58,12 +68,14 @@ public class   Robot {
     static final double BIAS_BACK_RIGHT = 1;
 
     static final double FINE_CORRECTION = 0.01;
-    static final double LARGE_CORRECTION = 0.01 ;
+    static final double LARGE_CORRECTION = 0.01;
 
     //Conversion Constants
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 4;
     static final int COUNTS_PER_REVOLUTION = 8192;
     static final float mmPerInch = 25.4f;
+    //todo make/run calibration code to find this exact value
+    static final double TICKS_PER_ROBOT_DEGREE = Math.PI * 1000;
 
     // Inches Forward of axis of rotation
     static final float CAMERA_FORWARD_DISPLACEMENT  = 13f;
@@ -109,18 +121,21 @@ public class   Robot {
 
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
 
-        driveFrontLeft = hardwareMap.dcMotor.get("driveFrontLeft");
-        driveFrontRight = hardwareMap.dcMotor.get("driveFrontRight");
-        driveBackLeft = hardwareMap.dcMotor.get("driveBackLeft");
-        driveBackRight = hardwareMap.dcMotor.get("driveBackRight");
+        DcMotor dcMotor = hardwareMap.dcMotor.get("driveFrontLeft");
 
-        driveFrontRight.setDirection(DcMotorSimple.Direction.REVERSE);
-        driveBackRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        MotorConfigurationType motorType = dcMotor.getMotorType();
+        motorType.setGearing(5);
+        motorType.setTicksPerRev(140);
+        motorType.setMaxRPM(1200);
 
-        driveFrontLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        driveFrontRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        driveBackLeft.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        driveBackRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        driveFrontLeft = new DriveMotor(dcMotor, motorType, DcMotorSimple.Direction.FORWARD);
+        driveFrontRight = new DriveMotor(hardwareMap.dcMotor.get("driveFrontRight"), motorType, DcMotorSimple.Direction.REVERSE);
+        driveBackLeft = new DriveMotor(hardwareMap.dcMotor.get("driveBackLeft"), motorType, DcMotorSimple.Direction.FORWARD);
+        driveBackRight = new DriveMotor(hardwareMap.dcMotor.get("driveBackRight"), motorType, DcMotorSimple.Direction.REVERSE);
+
+        encoderLeft = hardwareMap.dcMotor.get("odoLeft");
+        encoderRight = hardwareMap.dcMotor.get("odoRight");
+        encoderBack = hardwareMap.dcMotor.get("odoBack");
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -203,35 +218,40 @@ public class   Robot {
     public void updateLocation(){
         // orientation is inverted to have clockwise be positive.
         float imuAngle = -imu.getAngularOrientation().firstAngle;
-        double rotationChange = imuAngle - rotationPrevious;
+        double rotationChange = getRelativeAngle(rotationPrevious, imuAngle);
 
-        if (rotationChange > 180) {
-            rotationChange -= 360;
-        }
-        if (rotationChange < -180) {
-            rotationChange += 360;
-        }
+        int encoderLeftCurrent = encoderLeft.getCurrentPosition();
+        int encoderRightCurrent = encoderRight.getCurrentPosition();
+        int encoderBackCurrent = encoderBack.getCurrentPosition();
 
-        int encoderLeftCurrent = driveFrontLeft.getCurrentPosition();
-        int encoderRightCurrent = driveFrontRight.getCurrentPosition();
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
         double encoderRightChange = encoderRightCurrent - encoderRightPrevious;
-
-        traveledLeft += Math.abs(encoderLeftChange);
-        traveledRight += Math.abs(encoderRightChange);
-        rotation += rotationChange;
+        double encoderBackChange = encoderBackCurrent - encoderBackPrevious;
 
         encoderLeftPrevious = encoderLeftCurrent;
         encoderRightPrevious = encoderRightCurrent;
+        encoderBackPrevious = encoderBackCurrent;
         rotationPrevious = imuAngle;
 
-        double average = (encoderLeftChange+encoderRightChange)/2;
+        //The forward Vector has the luxury of having an odometer on both sides of the robot.
+        //This allows us to eliminate the unwanted influence of turning the robot by averaging
+        //the two. This meathod doesn't require any prior calibration.
+        double forwardVector = (encoderLeftChange+encoderRightChange)/2;
 
-        double xChange = average * (Math.sin(Math.toRadians(rotation)));
-        double yChange = average * (Math.cos(Math.toRadians(rotation)));
+        //Since there isn't a second wheel to remove the influence of robot rotation, we have to
+        //instead do this by approximating the number of ticks that were removed due to rotation
+        //based on a separate calibration program.
+        double sidewaysVector = encoderBackChange + (rotationChange*TICKS_PER_ROBOT_DEGREE);
+
+        double magnitude = Math.sqrt((forwardVector*forwardVector) + (sidewaysVector*sidewaysVector));
+        double direction = Math.toRadians(rotation + (rotationChange/2)) + Math.atan2(sidewaysVector,forwardVector);
+
+        double xChange = magnitude * (Math.sin(direction));
+        double yChange = magnitude * (Math.cos(direction));
 
         locationX += xChange;
         locationY += yChange;
+        rotation += rotationChange;
 
 
         if (rotation > 180) {
@@ -349,7 +369,6 @@ public class   Robot {
         double y = scalar * Math.cos(rad);
         double x = scalar * Math.sin(rad);
 
-        //TODO: Try swapping p and q if left and right seam incorrect
         double p = y + x;
         double q = y - x;
 
@@ -382,7 +401,22 @@ public class   Robot {
         return powers;
     }
 
-    //
+    public void brakeAll() {
+        driveFrontLeft.brake();
+        driveFrontRight.brake();
+        driveBackLeft.brake();
+        driveBackRight.brake();
+    }
+
+    //sets the position the motors will lock to when braking to the motor's current position.
+    public void setAllBrakePos() {
+        driveFrontLeft.setBrakePosition();
+        driveFrontRight.setBrakePosition();
+        driveBackLeft.setBrakePosition();
+        driveBackRight.setBrakePosition();
+    }
+
+    //Outputs the power necessary to turn and face a provided direction
     public double[] getFacePowers(float direction, double power) {
         double relativeAngle = getRelativeAngle(direction, rotation);
         double scaler = Math.pow(LARGE_CORRECTION * relativeAngle, 3) + FINE_CORRECTION * relativeAngle;

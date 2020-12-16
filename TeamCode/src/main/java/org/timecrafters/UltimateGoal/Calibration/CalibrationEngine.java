@@ -21,6 +21,6 @@ public class CalibrationEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        addState(new MechanumBiasCalibrator(robot));
+        addState(new VelocityTest(robot));
     }
 }
