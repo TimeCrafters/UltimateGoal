@@ -1,6 +1,9 @@
 package org.timecrafters.UltimateGoal.HardwareTesting;
 
 import org.cyberarm.engine.V2.CyberarmState;
+import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.timecrafters.UltimateGoal.Robot;
 
 
@@ -16,15 +19,43 @@ public class MecanumFunctionTest extends CyberarmState {
     private double powerBackLeft=0;
     private double powerBackRight=0;
 
-    private static double TURN_POWER_SCALE = 0.5;
+    private double aVx = 0;
+    private double aVy = 0;
+    private double aVz = 0;
+
+    private int powerStep = 5;
+    private double POWER_SCALE = 0.5 ;
+    private boolean toggleSpeedInput = false;
 
     public MecanumFunctionTest(Robot robot) {
         this.robot = robot;
     }
 
     @Override
+    public void init() {
+        Velocity startVelocity = new Velocity();
+        startVelocity.xVeloc = 0;
+        startVelocity.yVeloc = 0;
+        startVelocity.zVeloc = 0;
+
+        Position startPosition = new Position();
+        startPosition.x = 0;
+        startPosition.y = 0;
+        startPosition.z = 0;
+
+        robot.imu.startAccelerationIntegration(startPosition,startVelocity, 10);
+    }
+
+    @Override
     public void exec() {
         robot.updateLocation();
+        robot.record();
+
+        AngularVelocity angularVelocity = robot.imu.getAngularVelocity();
+
+        aVx = angularVelocity.xRotationRate;
+        aVy = angularVelocity.yRotationRate;
+        aVz = angularVelocity.zRotationRate;
 
         double leftJoystickX = engine.gamepad1.left_stick_x;
         double leftJoystickY = engine.gamepad1.left_stick_y;
@@ -37,29 +68,45 @@ public class MecanumFunctionTest extends CyberarmState {
 
         rightJoystickDegrees = (float) Math.toDegrees(Math.atan2(rightJoystickX, -rightJoystickY));
         rightJoystickMagnitude = Math.hypot(rightJoystickX, rightJoystickY);
-//
+
         powerFrontLeft = 0;
         powerFrontRight = 0;
         powerBackLeft = 0;
         powerBackRight = 0;
 
+        boolean a = engine.gamepad1.a;
+        boolean b = engine.gamepad1.b;
+
+        if (a && !toggleSpeedInput && POWER_SCALE < 1) {
+            powerStep += 1;
+            POWER_SCALE = powerStep * 0.1;
+        }
+
+        if (b && !toggleSpeedInput && POWER_SCALE > 0.1) {
+            powerStep -= 1;
+            POWER_SCALE = powerStep * 0.1;
+        }
+
+        toggleSpeedInput = a || b;
+
         if (rightJoystickMagnitude == 0) {
             if (leftJoystickMagnitude !=0) {
-                double[] powers = robot.getMecanumPowers(leftJoystickDegrees, leftJoystickMagnitude, leftJoystickDegrees);
+                double[] powers = robot.getMecanumPowers(leftJoystickDegrees, POWER_SCALE * leftJoystickMagnitude, leftJoystickDegrees);
                 powerFrontLeft = powers[0];
                 powerFrontRight = powers[1];
                 powerBackLeft = powers[2];
                 powerBackRight = powers[3];
+
             }
         } else {
             if (leftJoystickMagnitude == 0) {
-                double[] powers =  robot.getFacePowers(rightJoystickDegrees, rightJoystickMagnitude);
-                powerFrontLeft = TURN_POWER_SCALE * powers[0];
-                powerFrontRight = TURN_POWER_SCALE * powers[1];
-                powerBackLeft = TURN_POWER_SCALE * powers[0];
-                powerBackRight = TURN_POWER_SCALE * powers[1];
+                double[] powers =  robot.getFacePowers(rightJoystickDegrees, POWER_SCALE * rightJoystickMagnitude);
+                powerFrontLeft = powers[0];
+                powerFrontRight = powers[1];
+                powerBackLeft = powers[0];
+                powerBackRight = powers[1];
             } else {
-                double[] powers = robot.getMecanumPowers(leftJoystickDegrees, leftJoystickMagnitude, rightJoystickDegrees);
+                double[] powers = robot.getMecanumPowers(leftJoystickDegrees, POWER_SCALE * leftJoystickMagnitude, rightJoystickDegrees);
                 powerFrontLeft = powers[0];
                 powerFrontRight = powers[1];
                 powerBackLeft = powers[2];
@@ -67,22 +114,24 @@ public class MecanumFunctionTest extends CyberarmState {
             }
         }
 
-//        robot.record(powerFrontLeft,powerFrontRight,powerBackLeft,powerBackRight);
-
         robot.setDrivePower(powerFrontLeft,powerFrontRight,powerBackLeft,powerBackRight);
+
 
     }
 
     @Override
     public void telemetry() {
+        engine.telemetry.addData("Scale", POWER_SCALE);
 
-        engine.telemetry.addLine("Left Joystick");
-        engine.telemetry.addData("Angle", leftJoystickDegrees);
-        engine.telemetry.addData("Mag", leftJoystickMagnitude);
+        engine.telemetry.addLine("Angular Velocity");
+        engine.telemetry.addData("X", aVx);
+        engine.telemetry.addData("Y", aVy);
+        engine.telemetry.addData("Z", aVz);
 
-        engine.telemetry.addLine("Right Joystick");
-        engine.telemetry.addData("Angle", rightJoystickDegrees);
-        engine.telemetry.addData("Mag", rightJoystickMagnitude);
-
+        engine.telemetry.addLine("Powers");
+        engine.telemetry.addData("FL", robot.driveFrontLeft.motor.getPower());
+        engine.telemetry.addData("FR", robot.driveFrontRight.motor.getPower());
+        engine.telemetry.addData("BL", robot.driveBackLeft.motor.getPower());
+        engine.telemetry.addData("BR", robot.driveBackRight.motor.getPower());
     }
 }

@@ -16,7 +16,5 @@ public class EncoderTest extends CyberarmState {
     @Override
     public void exec() {
 
-        robot.setDrivePower(0.1, 0.1,0.1,0.1);
-
     }
 }

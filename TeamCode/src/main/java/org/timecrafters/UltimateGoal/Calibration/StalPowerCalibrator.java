@@ -23,7 +23,7 @@ public class StalPowerCalibrator extends CyberarmState {
 
     @Override
     public void init() {
-        Motors = new DcMotor[]{robot.driveFrontLeft, robot.driveFrontRight, robot.driveBackLeft, robot.driveBackRight};
+//        Motors = new DcMotor[]{robot.driveFrontLeft, robot.driveFrontRight, robot.driveBackLeft, robot.driveBackRight};
         Powers = new double[] {0,0,0,0};
 
         for (DcMotor motor : Motors) {

@@ -5,7 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Robot;
 
-@TeleOp (name = "Encoder test", group = "test")
+@TeleOp (name = "Performance test", group = "test")
 public class TestingEngine extends CyberarmEngine {
 
     private Robot robot;
@@ -24,9 +24,9 @@ public class TestingEngine extends CyberarmEngine {
         addState(new MecanumFunctionTest(robot));
     }
 
-//    @Override
-//    public void stop() {
-//        robot.saveRecording();
-//        super.stop();
-//    }
+    @Override
+    public void stop() {
+        robot.saveRecording();
+        super.stop();
+    }
 }

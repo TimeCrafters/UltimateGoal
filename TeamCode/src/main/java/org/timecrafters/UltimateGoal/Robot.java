@@ -14,6 +14,8 @@ import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
 import org.firstinspires.ftc.robotcore.external.navigation.Orientation;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
@@ -57,25 +59,22 @@ public class   Robot {
     public DcMotor encoderRight;
     public DcMotor encoderBack;
 
-    private int brakePosFrontLeft;
-    private int brakePosFrontRight;
-    private int brakePosBackLeft;
-    private int brakePosBackRight;
+    public DcMotor launcher;
 
-    static final double BIAS_FRONT_LEFT = 1;
-    static final double BIAS_FRONT_RIGHT = 1;
-    static final double BIAS_BACK_LEFT = 1;
-    static final double BIAS_BACK_RIGHT = 1;
-
-    static final double FINE_CORRECTION = 0.01;
-    static final double LARGE_CORRECTION = 0.01;
+    //Steering Constants
+    static final double FINE_CORRECTION = 0.05 ;
+    static final double LARGE_CORRECTION = 0.002;
+    static final double MOMENTUM_CORRECTION = 1.015;
+    static final double MOMENTUM_MAX_CORRECTION = 1.35;
+    static final double MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(MOMENTUM_MAX_CORRECTION-1)/Math.log10(MOMENTUM_CORRECTION));
 
     //Conversion Constants
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 4;
     static final int COUNTS_PER_REVOLUTION = 8192;
     static final float mmPerInch = 25.4f;
     //todo make/run calibration code to find this exact value
-    static final double TICKS_PER_ROBOT_DEGREE = Math.PI * 1000;
+    static final double TICKS_PER_ROBOT_DEGREE_CLOCKWISE = Math.PI * 1000;
+    static final double TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE = Math.PI * 1000;
 
     // Inches Forward of axis of rotation
     static final float CAMERA_FORWARD_DISPLACEMENT  = 13f;
@@ -89,27 +88,47 @@ public class   Robot {
     public double locationY;
     private float rotation;
 
+    private int encoderLeftPrevious = 0;
+    private int encoderBackPrevious = 0;
+    private int encoderRightPrevious = 0;
+    private float rotationPrevious = 0;
+    public float angularVelocity;
+
+    //Launcher
+    public DcMotor launchMotor;
+
+    public static final double LAUNCH_POSITION_X = 28 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
+    public static final double LAUNCH_POSITION_Y = 0 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
+    public static final float LAUNCH_ROTATION = 0;
+    public static final double LAUNCH_TOLERANCE_POS = 50;
+    public static final double LAUNCH_TOLERANCE_FACE = 0.5;
+
+    //Ring Belt
+    public static final int RING_BELT_LOOP_TICKS = 1000;
+    public static final int RING_BELT_POS_1 = 200;
+    public static final int RING_BELT_POS_2 = 400;
+    public static final int RING_BELT_POS_3 = 600;
+
     //Debugging
     public double visionX;
     public double visionY;
     public float rawAngle;
 //    private String TestingRecord = "FrontLeft,FrontRight,BackLeft,BackRight";
-    private String TestingRecord = "Rotation";
+    private String TestingRecord = "AngularVelocity";
 
     public double traveledLeft;
     public double traveledRight;
 
-
-    private int encoderLeftPrevious = 0;
-    private int encoderBackPrevious = 0;
-    private int encoderRightPrevious = 0;
-    private float rotationPrevious = 0;
 
     //vuforia navigation
     public boolean trackableVisible;
     private VuforiaTrackables targetsUltimateGoal;
     private List<VuforiaTrackable> trackables = new ArrayList<VuforiaTrackable>();
     private OpenGLMatrix lastConfirmendLocation;
+
+    private long timeStartZeroVelocity = 0;
+    private static final long MIN_CHECK_DURATION_MS = 500;
+    private static final double MIN_CHECK_VELOCITY = 0.005;
 
     //TensorFlow Object Detection
     public TFObjectDetector tfObjectDetector;
@@ -126,16 +145,24 @@ public class   Robot {
         MotorConfigurationType motorType = dcMotor.getMotorType();
         motorType.setGearing(5);
         motorType.setTicksPerRev(140);
-        motorType.setMaxRPM(1200);
+        motorType.setMaxRPM(800);
 
         driveFrontLeft = new DriveMotor(dcMotor, motorType, DcMotorSimple.Direction.FORWARD);
         driveFrontRight = new DriveMotor(hardwareMap.dcMotor.get("driveFrontRight"), motorType, DcMotorSimple.Direction.REVERSE);
         driveBackLeft = new DriveMotor(hardwareMap.dcMotor.get("driveBackLeft"), motorType, DcMotorSimple.Direction.FORWARD);
         driveBackRight = new DriveMotor(hardwareMap.dcMotor.get("driveBackRight"), motorType, DcMotorSimple.Direction.REVERSE);
 
+        driveFrontLeft.init();
+        driveFrontRight.init();
+        driveBackLeft.init();
+        driveBackRight.init();
+
+        //todo add these when they exist
         encoderLeft = hardwareMap.dcMotor.get("odoLeft");
-        encoderRight = hardwareMap.dcMotor.get("odoRight");
-        encoderBack = hardwareMap.dcMotor.get("odoBack");
+//        encoderRight = hardwareMap.dcMotor.get("odoRight");
+//        encoderBack = hardwareMap.dcMotor.get("odoBack");
+//
+//        launcher = hardwareMap.dcMotor.get("launcher");
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -145,6 +172,18 @@ public class   Robot {
         parameters.loggingEnabled = false;
 
         imu.initialize(parameters);
+
+        Velocity startVelocity = new Velocity();
+        startVelocity.xVeloc = 0;
+        startVelocity.yVeloc = 0;
+        startVelocity.zVeloc = 0;
+
+        Position startPosition = new Position();
+        startPosition.x = 0;
+        startPosition.y = 0;
+        startPosition.z = 0;
+
+        imu.startAccelerationIntegration(startPosition,startVelocity, 10);
 
 //        initVuforia();
 
@@ -216,10 +255,12 @@ public class   Robot {
 
     //run this in every exec to track the robot's location.
     public void updateLocation(){
+
         // orientation is inverted to have clockwise be positive.
         float imuAngle = -imu.getAngularOrientation().firstAngle;
         double rotationChange = getRelativeAngle(rotationPrevious, imuAngle);
 
+        //todo add this when encoders exist.
         int encoderLeftCurrent = encoderLeft.getCurrentPosition();
         int encoderRightCurrent = encoderRight.getCurrentPosition();
         int encoderBackCurrent = encoderBack.getCurrentPosition();
@@ -241,7 +282,16 @@ public class   Robot {
         //Since there isn't a second wheel to remove the influence of robot rotation, we have to
         //instead do this by approximating the number of ticks that were removed due to rotation
         //based on a separate calibration program.
-        double sidewaysVector = encoderBackChange + (rotationChange*TICKS_PER_ROBOT_DEGREE);
+
+        double ticksPerDegree;
+
+        if(rotationChange < 0) {
+            ticksPerDegree = TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE;
+        } else {
+            ticksPerDegree = TICKS_PER_ROBOT_DEGREE_CLOCKWISE;
+        }
+        //todo:  check if direction of the back encoder gives expected values
+        double sidewaysVector = encoderBackChange - (rotationChange* ticksPerDegree);
 
         double magnitude = Math.sqrt((forwardVector*forwardVector) + (sidewaysVector*sidewaysVector));
         double direction = Math.toRadians(rotation + (rotationChange/2)) + Math.atan2(sidewaysVector,forwardVector);
@@ -251,7 +301,24 @@ public class   Robot {
 
         locationX += xChange;
         locationY += yChange;
+
         rotation += rotationChange;
+
+
+        double totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightCurrent) + Math.abs(encoderBackChange);
+
+        if (totalV < MIN_CHECK_VELOCITY) {
+            long timeCurrent = System.currentTimeMillis();
+
+            if (timeStartZeroVelocity == 0) {
+                timeStartZeroVelocity = timeCurrent;
+            } else if (timeCurrent - timeStartZeroVelocity >= MIN_CHECK_DURATION_MS) {
+                syncWithVuforia();
+            }
+
+        } else {
+            timeStartZeroVelocity = 0;
+        }
 
 
         if (rotation > 180) {
@@ -260,6 +327,15 @@ public class   Robot {
         if (rotation < -180) {
             rotation += 360;
         }
+
+    }
+
+    public void checkVuforiaSync() {
+
+        double V1 = driveFrontLeft.motor.getPower();
+        double V2 = driveFrontRight.motor.getPower();
+        double V3 = driveBackLeft.motor.getPower();
+        double V4 = driveBackRight.motor.getPower();
 
     }
 
@@ -354,10 +430,10 @@ public class   Robot {
 
     //Drive Functions
     public void setDrivePower(double powerFrontLeft, double powerFrontRight, double powerBackLeft, double powerBackRight){
-        driveFrontLeft.setPower(powerFrontLeft * BIAS_FRONT_LEFT);
-        driveFrontRight.setPower(powerFrontRight * BIAS_FRONT_RIGHT);
-        driveBackLeft.setPower(powerBackLeft * BIAS_BACK_LEFT);
-        driveBackRight.setPower(powerBackRight * BIAS_BACK_RIGHT);
+        driveFrontLeft.setPower(powerFrontLeft);
+        driveFrontRight.setPower(powerFrontRight);
+        driveBackLeft.setPower(powerBackLeft);
+        driveBackRight.setPower(powerBackRight);
     }
 
     //returns an array of the powers necessary to execute the provided motion. "degreesDirectionMotion"
@@ -365,25 +441,52 @@ public class   Robot {
     //the angle the robot should face relative to the field. The order of the output powers is
     //is ForwardLeft, ForwardRight, BackLeft, BackRight
     public double[] getMecanumPowers(float degreesDirectionMotion, double scalar, float degreesDirectionFace) {
+        angularVelocity = imu.getAngularVelocity().xRotationRate;
+
+        //calculating the base mecanum powers so that the robot drives along the degreesDirectionMotion
+        //once it is pointed towards the degreesDirectionFace
         double rad = Math.toRadians(getRelativeAngle(degreesDirectionFace,degreesDirectionMotion));
-        double y = scalar * Math.cos(rad);
-        double x = scalar * Math.sin(rad);
+        double y = Math.cos(rad);
+        double x = Math.sin(rad);
 
         double p = y + x;
         double q = y - x;
 
+        //calculating correction needed to steer the robot towards the degreesDirectionFace
         float relativeRotation =  getRelativeAngle(degreesDirectionFace, rotation);
         double turnCorrection = Math.pow(LARGE_CORRECTION * relativeRotation, 3) + FINE_CORRECTION * relativeRotation;
 
-        double powerForwardRight = q + turnCorrection;
-        double powerForwardLeft = p - turnCorrection;
-        double powerBackRight = p + turnCorrection;
-        double powerBackLeft = q - turnCorrection;
+        double powerForwardRight = scalar * (q + turnCorrection);
+        double powerForwardLeft = scalar * (p - turnCorrection);
+        double powerBackRight = scalar * (p + turnCorrection);
+        double powerBackLeft = scalar * (q - turnCorrection);
 
+        //the turnCorrection often results in powers with magnitudes significantly larger than the
+        //scalar. The scaleRatio mitigates this without altering the quality of the motion by making
+        //it so that the average of the four magnitudes is equal to the scalar magnitude.
+        double powerSum = Math.abs(powerForwardRight) + Math.abs(powerForwardLeft) +
+                Math.abs(powerBackRight) + Math.abs(powerBackLeft);
+        double scaleRatio = (4 * Math.abs(scalar))/powerSum;
+
+        powerForwardRight *= scaleRatio;
+        powerForwardLeft *= scaleRatio;
+        powerBackRight *= scaleRatio;
+        powerBackLeft *= scaleRatio;
+
+
+        if (relativeRotation != 0) {
+            double momentumRelative =  angularVelocity * (relativeRotation / Math.abs(relativeRotation));
+            double exponential = Math.pow(MOMENTUM_CORRECTION, -momentumRelative);
+            double momentumCorrection = (2*exponential)/(1+exponential);
+            powerForwardRight *= momentumCorrection;
+            powerForwardLeft *= momentumCorrection;
+            powerBackRight *= momentumCorrection;
+            powerBackLeft *= momentumCorrection;
+        }
 
         // The "extreme" is the power value that is furthest from zero. When this values exceed the
         // -1 to 1 power range, dividing the powers by the "extreme" scales everything back into the
-        // workable range without altering the final motion vector;
+        // workable range without altering the final motion vector.
 
         double extreme = Math.max(
                 Math.max(Math.abs(powerForwardRight),Math.abs(powerForwardLeft)),
@@ -395,6 +498,15 @@ public class   Robot {
             powerBackRight = powerBackRight/extreme;
             powerBackLeft = powerBackLeft/extreme;
         }
+
+//        double powerControlThreshold = 0.6 * ;
+//
+//        if (Math.min(extreme, 1) > powerControlThreshold) {
+//            powerForwardLeft *= powerControlThreshold;
+//            powerForwardRight *= powerControlThreshold;
+//            powerBackLeft *= powerControlThreshold;
+//            powerBackRight *= powerControlThreshold;
+//        }
 
         double[] powers = {powerForwardLeft, powerForwardRight, powerBackLeft, powerBackRight};
 
@@ -409,7 +521,7 @@ public class   Robot {
     }
 
     //sets the position the motors will lock to when braking to the motor's current position.
-    public void setAllBrakePos() {
+    public void setBrakePosAll() {
         driveFrontLeft.setBrakePosition();
         driveFrontRight.setBrakePosition();
         driveBackLeft.setBrakePosition();
@@ -418,17 +530,21 @@ public class   Robot {
 
     //Outputs the power necessary to turn and face a provided direction
     public double[] getFacePowers(float direction, double power) {
+        angularVelocity = imu.getAngularVelocity().xRotationRate;
         double relativeAngle = getRelativeAngle(direction, rotation);
         double scaler = Math.pow(LARGE_CORRECTION * relativeAngle, 3) + FINE_CORRECTION * relativeAngle;
+
+        if (relativeAngle != 0) {
+            double momentumRelative =  angularVelocity * (relativeAngle / Math.abs(relativeAngle));
+            double exponential = Math.pow(MOMENTUM_CORRECTION, MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
+            double momentumCorrection = (MOMENTUM_MAX_CORRECTION*exponential)/(1+exponential);
+
+            scaler *= momentumCorrection;
+        }
 
         double left = -power * scaler;
         double right = power *scaler;
 
-
-//        if (relativeAngle > 0) {
-//            left *= -1;
-//            right *= -1;
-//        }
         double[] powers = {left,right};
         return powers;
     }
@@ -442,7 +558,7 @@ public class   Robot {
         //towards the target angle
         //--------------------------------------------------------------------------------------
 
-        double turnPowerCorrection = Math.pow(0.03 * relativeAngle, 3) + 0.02 * relativeAngle;
+        double turnPowerCorrection = Math.abs(power) * (Math.pow(LARGE_CORRECTION * relativeAngle, 3) + FINE_CORRECTION * relativeAngle);
 
         //Adjusts power based on degrees off from target.
         double leftPower = power - turnPowerCorrection;
@@ -463,7 +579,7 @@ public class   Robot {
 //    }
 
     public void record() {
-        TestingRecord+="\n"+rotation;
+        TestingRecord+="\n"+angularVelocity;
     }
 
     public void saveRecording() {

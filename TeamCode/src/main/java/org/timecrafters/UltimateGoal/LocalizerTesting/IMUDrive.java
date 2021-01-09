@@ -38,7 +38,7 @@ public class IMUDrive extends CyberarmState {
         }
 
         angleTarget=robot.getRotation();
-        tickStart = robot.driveFrontRight.getCurrentPosition();
+        tickStart = robot.driveFrontRight.motor.getCurrentPosition();
     }
 
     @Override
@@ -46,7 +46,7 @@ public class IMUDrive extends CyberarmState {
 
         robot.updateLocation();
 
-        int ticksTraveled = Math.abs( robot.driveFrontRight.getCurrentPosition()-tickStart);
+        int ticksTraveled = Math.abs( robot.driveFrontRight.motor.getCurrentPosition()-tickStart);
         if (ticksTraveled > tickTarget) {
 //            robot.setDrivePower(0,0);
             sleep(finishDelay);

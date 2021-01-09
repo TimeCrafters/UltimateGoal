@@ -1,4 +1,10 @@
 package org.timecrafters.UltimateGoal;
 
-public class TeleOpEngine {
+import org.cyberarm.engine.V2.CyberarmEngine;
+
+public class TeleOpEngine extends CyberarmEngine {
+    @Override
+    public void setup() {
+
+    }
 }
