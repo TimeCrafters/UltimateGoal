@@ -3,9 +3,7 @@ package org.timecrafters.UltimateGoal.Calibration;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.UltimateGoal.Robot;
-
-import java.util.ArrayList;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 public class StalPowerCalibrator extends CyberarmState {
 

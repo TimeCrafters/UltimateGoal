@@ -1,4 +1,4 @@
-package org.timecrafters.UltimateGoal.Autonomous;
+package org.timecrafters.UltimateGoal.Competition.Autonomous;
 
 import org.cyberarm.engine.V2.CyberarmState;
 

@@ -1,9 +1,7 @@
 package org.timecrafters.UltimateGoal.Calibration;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
-
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 import java.util.ArrayList;
 

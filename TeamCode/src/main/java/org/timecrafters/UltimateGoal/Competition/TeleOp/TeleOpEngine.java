@@ -1,4 +1,4 @@
-package org.timecrafters.UltimateGoal;
+package org.timecrafters.UltimateGoal.Competition.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 

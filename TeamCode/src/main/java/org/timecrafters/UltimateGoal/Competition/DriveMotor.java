@@ -1,4 +1,4 @@
-package org.timecrafters.UltimateGoal;
+package org.timecrafters.UltimateGoal.Competition;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;

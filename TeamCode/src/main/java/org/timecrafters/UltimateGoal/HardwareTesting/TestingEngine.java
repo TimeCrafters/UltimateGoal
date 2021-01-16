@@ -3,13 +3,12 @@ package org.timecrafters.UltimateGoal.HardwareTesting;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
-@TeleOp (name = "Performance test", group = "test")
+@TeleOp (name = "Hardware test", group = "test")
 public class TestingEngine extends CyberarmEngine {
 
     private Robot robot;
-
     @Override
     public void init() {
         robot = new Robot(hardwareMap);
@@ -17,16 +16,14 @@ public class TestingEngine extends CyberarmEngine {
         super.init();
     }
 
-
-
     @Override
     public void setup() {
-        addState(new MecanumFunctionTest(robot));
+        addState(new FullTest(robot));
     }
-
-    @Override
-    public void stop() {
-        robot.saveRecording();
-        super.stop();
-    }
+//
+//    @Override
+//    public void stop() {
+//        robot.saveRecording();
+//        super.stop();
+//    }
 }

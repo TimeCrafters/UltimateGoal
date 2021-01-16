@@ -1,7 +1,7 @@
 package org.timecrafters.UltimateGoal.Calibration;
 
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 public class OdometryCalibration extends CyberarmState {
 

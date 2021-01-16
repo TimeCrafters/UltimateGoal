@@ -1,9 +1,8 @@
 package org.timecrafters.UltimateGoal.Calibration;
 
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 
 public class MechanumBiasCalibrator extends CyberarmState {

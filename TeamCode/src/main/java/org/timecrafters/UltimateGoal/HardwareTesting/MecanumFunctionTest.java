@@ -4,7 +4,7 @@ import org.cyberarm.engine.V2.CyberarmState;
 import org.firstinspires.ftc.robotcore.external.navigation.AngularVelocity;
 import org.firstinspires.ftc.robotcore.external.navigation.Position;
 import org.firstinspires.ftc.robotcore.external.navigation.Velocity;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 
 public class MecanumFunctionTest extends CyberarmState {

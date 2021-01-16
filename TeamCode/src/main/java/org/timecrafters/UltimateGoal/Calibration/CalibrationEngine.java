@@ -1,11 +1,9 @@
 package org.timecrafters.UltimateGoal.Calibration;
 
-import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
-import org.timecrafters.UltimateGoal.HardwareTesting.MecanumFunctionTest;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 @TeleOp (name = "Calibration", group = "test")
 public class CalibrationEngine extends CyberarmEngine {

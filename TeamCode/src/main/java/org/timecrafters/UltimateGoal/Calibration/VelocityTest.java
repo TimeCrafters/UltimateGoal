@@ -1,11 +1,8 @@
 package org.timecrafters.UltimateGoal.Calibration;
 
-import com.qualcomm.robotcore.hardware.DcMotor;
-import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
-
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.UltimateGoal.DriveMotor;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.DriveMotor;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 public class VelocityTest extends CyberarmState {
 

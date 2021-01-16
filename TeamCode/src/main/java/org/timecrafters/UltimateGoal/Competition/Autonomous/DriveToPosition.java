@@ -1,7 +1,7 @@
-package org.timecrafters.UltimateGoal.LocalizerTesting;
+package org.timecrafters.UltimateGoal.Competition.Autonomous;
 
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 public class DriveToPosition extends CyberarmState {
 
@@ -51,7 +51,7 @@ public class DriveToPosition extends CyberarmState {
             robot.setDrivePower(0, 0, 0, 0);
             setHasFinished(true);
         } else {
-            robot.driveAtAngle(robot.getAngleToPosition(targetX, targetY), power);
+//            robot.driveAtAngle(robot.getAngleToPosition(targetX, targetY), power);
         }
 
     }

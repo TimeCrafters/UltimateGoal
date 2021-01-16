@@ -1,4 +1,4 @@
-package org.timecrafters.UltimateGoal;
+package org.timecrafters.UltimateGoal.Competition;
 
 import android.os.Environment;
 import android.util.Log;
@@ -6,6 +6,7 @@ import android.util.Log;
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
@@ -59,8 +60,6 @@ public class   Robot {
     public DcMotor encoderRight;
     public DcMotor encoderBack;
 
-    public DcMotor launcher;
-
     //Steering Constants
     static final double FINE_CORRECTION = 0.05 ;
     static final double LARGE_CORRECTION = 0.002;
@@ -97,6 +96,7 @@ public class   Robot {
     //Launcher
     public DcMotor launchMotor;
 
+    private static final long LAUNCH_ACCEL_TIME = 3000;
     public static final double LAUNCH_POSITION_X = 28 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
     public static final double LAUNCH_POSITION_Y = 0 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
     public static final float LAUNCH_ROTATION = 0;
@@ -104,10 +104,18 @@ public class   Robot {
     public static final double LAUNCH_TOLERANCE_FACE = 0.5;
 
     //Ring Belt
+    public DcMotor collectionMotor;
+    public DcMotor ringBeltMotor;
+    private DigitalChannel limitSwitch;
+
+    //todo: tune these when they exist
     public static final int RING_BELT_LOOP_TICKS = 1000;
-    public static final int RING_BELT_POS_1 = 200;
-    public static final int RING_BELT_POS_2 = 400;
-    public static final int RING_BELT_POS_3 = 600;
+    public static final int RING_BELT_GAP = 200;
+    public static final int RING_BELT_RECEIVE_POS = 100;
+
+    public static final double RING_DETECT_DISTANCE = 100;
+    public static final double RING_DETECT_DELAY = 1000;
+
 
     //Debugging
     public double visionX;
@@ -139,6 +147,7 @@ public class   Robot {
 //        webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
 
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
+//        limitSwitch.setMode(DigitalChannel.Mode.INPUT);
 
         DcMotor dcMotor = hardwareMap.dcMotor.get("driveFrontLeft");
 
@@ -157,12 +166,14 @@ public class   Robot {
         driveBackLeft.init();
         driveBackRight.init();
 
-        //todo add these when they exist
-        encoderLeft = hardwareMap.dcMotor.get("odoLeft");
+//        encoderLeft = hardwareMap.dcMotor.get("odoLeft");
 //        encoderRight = hardwareMap.dcMotor.get("odoRight");
 //        encoderBack = hardwareMap.dcMotor.get("odoBack");
-//
-//        launcher = hardwareMap.dcMotor.get("launcher");
+
+        launchMotor = hardwareMap.dcMotor.get("launcher");
+        collectionMotor = hardwareMap.dcMotor.get("collect");
+        collectionMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        ringBeltMotor = hardwareMap.dcMotor.get("belt");
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -190,6 +201,14 @@ public class   Robot {
         rotation = stateConfiguration.variable("system", "startPos", "direction").value();
         locationX = stateConfiguration.variable("system", "startPos", "x").value();
         locationY = stateConfiguration.variable("system", "startPos", "y").value();
+
+//        double launcherPower = 0;
+//        long launchAccelStart = System.currentTimeMillis();
+//        while (launcherPower < 1) {
+//            launcherPower = (double) (System.currentTimeMillis() - launchAccelStart) / LAUNCH_ACCEL_TIME;
+//            launchMotor.setPower(launcherPower);
+//        }
+
     }
 
     private void initVuforia() {
@@ -549,34 +568,17 @@ public class   Robot {
         return powers;
     }
 
-    //This function should not be used
-    public void driveAtAngle(float angle, double power) {
-
-        double relativeAngle = getRelativeAngle(angle, getRotation());
-
-        //calculate how the power of each motor should be adjusted to make the robot curve
-        //towards the target angle
-        //--------------------------------------------------------------------------------------
-
-        double turnPowerCorrection = Math.abs(power) * (Math.pow(LARGE_CORRECTION * relativeAngle, 3) + FINE_CORRECTION * relativeAngle);
-
-        //Adjusts power based on degrees off from target.
-        double leftPower = power - turnPowerCorrection;
-        double rightPower = power + turnPowerCorrection;
-        //--------------------------------------------------------------------------------------
-
-
-        //calculates speed adjuster that slows the motors to be closer to the BasePower while
-        // maintaining the power ratio nesesary to execute the turn.
-        double powerAdjust = ((2 * power) / (Math.abs(leftPower) + Math.abs(rightPower)));
-
-//        setDrivePower(leftPower * powerAdjust, rightPower * powerAdjust);
+    public int getBeltPos(){
+        return loopPos(ringBeltMotor.getCurrentPosition());
     }
 
-    //Data Recording
-//    public void record(double frontLeft, double frontRight, double backLeft, double backRight) {
-//        TestingRecord+="\n"+frontLeft+","+frontRight+","+backLeft+","+backRight;
-//    }
+    public int loopPos(int pos) {
+        if (pos < 0) {
+         pos += RING_BELT_LOOP_TICKS;
+        }
+        pos %= RING_BELT_LOOP_TICKS;
+        return pos;
+    }
 
     public void record() {
         TestingRecord+="\n"+angularVelocity;

@@ -1,7 +1,7 @@
-package org.timecrafters.UltimateGoal.Autonomous;
+package org.timecrafters.UltimateGoal.Competition.Autonomous;
 
 import org.cyberarm.engine.V2.CyberarmState;
-import org.timecrafters.UltimateGoal.Robot;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 
 public class DriveToCoordinates extends CyberarmState {
 
