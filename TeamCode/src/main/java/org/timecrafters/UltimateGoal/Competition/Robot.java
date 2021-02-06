@@ -4,10 +4,12 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
+import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
+import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
-import com.qualcomm.robotcore.hardware.DigitalChannel;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
@@ -35,7 +37,7 @@ import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.XYZ;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesOrder.YZX;
 import static org.firstinspires.ftc.robotcore.external.navigation.AxesReference.EXTRINSIC;
 
-public class   Robot {
+public class Robot {
 
     private HardwareMap hardwareMap;
 
@@ -46,34 +48,29 @@ public class   Robot {
     public TimeCraftersConfiguration stateConfiguration = new TimeCraftersConfiguration();
     public BNO055IMU imu;
 
-    private WebcamName webcam;
-    private VuforiaLocalizer vuforia;
-
     //drive system
-
-    public DriveMotor driveFrontLeft;
-    public DriveMotor driveBackLeft;
-    public DriveMotor driveFrontRight;
-    public DriveMotor driveBackRight;
+    public DcMotor driveFrontLeft;
+    public DcMotor driveBackLeft;
+    public DcMotor driveFrontRight;
+    public DcMotor driveBackRight;
 
     public DcMotor encoderLeft;
     public DcMotor encoderRight;
     public DcMotor encoderBack;
 
     //Steering Constants
-    static final double FINE_CORRECTION = 0.05 ;
-    static final double LARGE_CORRECTION = 0.002;
-    static final double MOMENTUM_CORRECTION = 1.015;
-    static final double MOMENTUM_MAX_CORRECTION = 1.35;
+    static final double FINE_CORRECTION = 0.055 ;
+    static final double LARGE_CORRECTION = 0.025   ;
+    static final double MOMENTUM_CORRECTION = 1.02;
+    static final double MOMENTUM_MAX_CORRECTION = 1.3;
     static final double MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(MOMENTUM_MAX_CORRECTION-1)/Math.log10(MOMENTUM_CORRECTION));
 
     //Conversion Constants
-    static final double ENCODER_CIRCUMFERENCE = Math.PI * 4;
+    static final double ENCODER_CIRCUMFERENCE = Math.PI * 2.3622;
     static final int COUNTS_PER_REVOLUTION = 8192;
     static final float mmPerInch = 25.4f;
-    //todo make/run calibration code to find this exact value
-    static final double TICKS_PER_ROBOT_DEGREE_CLOCKWISE = Math.PI * 1000;
-    static final double TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE = Math.PI * 1000;
+    static final double TICKS_PER_ROBOT_DEGREE_CLOCKWISE = 8.4;
+    static final double TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE = 8.6;
 
     // Inches Forward of axis of rotation
     static final float CAMERA_FORWARD_DISPLACEMENT  = 13f;
@@ -95,85 +92,117 @@ public class   Robot {
 
     //Launcher
     public DcMotor launchMotor;
+    public static final double LAUNCH_POWER = 0.75;
 
-    private static final long LAUNCH_ACCEL_TIME = 3000;
-    public static final double LAUNCH_POSITION_X = 28 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
-    public static final double LAUNCH_POSITION_Y = 0 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
+    private static final long LAUNCH_ACCEL_TIME = 500;
+    public static final double LAUNCH_POSITION_X = 36 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
+    public static final double LAUNCH_POSITION_Y = -8 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
     public static final float LAUNCH_ROTATION = 0;
-    public static final double LAUNCH_TOLERANCE_POS = 50;
+    public static final double LAUNCH_TOLERANCE_POS = 0.5 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
     public static final double LAUNCH_TOLERANCE_FACE = 0.5;
 
-    //Ring Belt
-    public DcMotor collectionMotor;
-    public DcMotor ringBeltMotor;
-    private DigitalChannel limitSwitch;
 
-    //todo: tune these when they exist
-    public static final int RING_BELT_LOOP_TICKS = 1000;
-    public static final int RING_BELT_GAP = 200;
-    public static final int RING_BELT_RECEIVE_POS = 100;
+
+    //Ring Intake
+    public DcMotor collectionMotor;
+    public Rev2mDistanceSensor ringIntakeSensor;
 
     public static final double RING_DETECT_DISTANCE = 100;
     public static final double RING_DETECT_DELAY = 1000;
 
+    //Ring Belt
+    public DcMotor ringBeltMotor;
+    public RevTouchSensor limitSwitch;
+    public int ringBeltStage;
+    public static final int RING_BELT_LOOP_TICKS = 2544;
+    public static final int RING_BELT_GAP = 670;
 
-    //Debugging
-    public double visionX;
-    public double visionY;
-    public float rawAngle;
-//    private String TestingRecord = "FrontLeft,FrontRight,BackLeft,BackRight";
-    private String TestingRecord = "AngularVelocity";
+    public static final double RING_BELT_POWER = 0.2;
 
-    public double traveledLeft;
-    public double traveledRight;
+    //Wobble Goal Arm
+    public DcMotor wobbleArmMotor;
+    public Servo  wobbleGrabServo;
+    public static final int WOBBLE_ARM_DOWN = -710;
 
+    public static final double WOBBLE_SERVO_MAX = 0.3;
 
     //vuforia navigation
+    private WebcamName webcam;
+    private VuforiaLocalizer vuforia;
+    public Servo webCamServo;
+    public static final double CAM_SERVO_UP = 0.2;
+    public static final double CAM_SERVO_Down = 0.2;
+
     public boolean trackableVisible;
     private VuforiaTrackables targetsUltimateGoal;
     private List<VuforiaTrackable> trackables = new ArrayList<VuforiaTrackable>();
     private OpenGLMatrix lastConfirmendLocation;
 
     private long timeStartZeroVelocity = 0;
-    private static final long MIN_CHECK_DURATION_MS = 500;
-    private static final double MIN_CHECK_VELOCITY = 0.005;
+    private long minCheckDurationMs = 500;
+    private int minCheckVelocity = 1;
 
     //TensorFlow Object Detection
     public TFObjectDetector tfObjectDetector;
     private static final float MINIMUM_CONFIDENCE = 0.8f;
 
+    //Debugging
+    public double totalV;
+    public double visionX;
+    public double visionY;
+    public float rawAngle;
+//    private String TestingRecord = "FrontLeft,FrontRight,BackLeft,BackRight";
+    private String TestingRecord = "TicksPerDegree";
+
+    public double traveledLeft;
+    public double traveledRight;
 
     public void initHardware() {
-//        webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
 
-        imu  = hardwareMap.get(BNO055IMU.class, "imu");
-//        limitSwitch.setMode(DigitalChannel.Mode.INPUT);
+        limitSwitch = hardwareMap.get(RevTouchSensor.class, "magLim");
 
-        DcMotor dcMotor = hardwareMap.dcMotor.get("driveFrontLeft");
+        driveFrontLeft = hardwareMap.dcMotor.get("driveFrontLeft");
+        driveFrontRight = hardwareMap.dcMotor.get("driveFrontRight");
+        driveBackLeft = hardwareMap.dcMotor.get("driveBackLeft");
+        driveBackRight = hardwareMap.dcMotor.get("driveBackRight");
 
-        MotorConfigurationType motorType = dcMotor.getMotorType();
-        motorType.setGearing(5);
-        motorType.setTicksPerRev(140);
-        motorType.setMaxRPM(800);
+        driveFrontLeft.setDirection(DcMotorSimple.Direction.FORWARD);
+        driveFrontRight.setDirection(DcMotorSimple.Direction.REVERSE);
+        driveBackLeft.setDirection(DcMotorSimple.Direction.FORWARD);
+        driveBackRight.setDirection(DcMotorSimple.Direction.REVERSE);
 
-        driveFrontLeft = new DriveMotor(dcMotor, motorType, DcMotorSimple.Direction.FORWARD);
-        driveFrontRight = new DriveMotor(hardwareMap.dcMotor.get("driveFrontRight"), motorType, DcMotorSimple.Direction.REVERSE);
-        driveBackLeft = new DriveMotor(hardwareMap.dcMotor.get("driveBackLeft"), motorType, DcMotorSimple.Direction.FORWARD);
-        driveBackRight = new DriveMotor(hardwareMap.dcMotor.get("driveBackRight"), motorType, DcMotorSimple.Direction.REVERSE);
+        //Localization encoders
+        encoderRight = hardwareMap.dcMotor.get("driveFrontRight");
+        encoderBack = hardwareMap.dcMotor.get("driveFrontLeft");
+        encoderLeft = hardwareMap.dcMotor.get("collect");
 
-        driveFrontLeft.init();
-        driveFrontRight.init();
-        driveBackLeft.init();
-        driveBackRight.init();
+        encoderRight.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderRight.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoderBack.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderBack.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        encoderLeft.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        encoderLeft.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
 
-//        encoderLeft = hardwareMap.dcMotor.get("odoLeft");
-//        encoderRight = hardwareMap.dcMotor.get("odoRight");
-//        encoderBack = hardwareMap.dcMotor.get("odoBack");
+        //init wobble arm
+        wobbleArmMotor = hardwareMap.dcMotor.get("wobbleArm");
+        wobbleArmMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        wobbleArmMotor.setTargetPosition(0);
+        wobbleArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        launchMotor = hardwareMap.dcMotor.get("launcher");
+        wobbleGrabServo = hardwareMap.servo.get("wobbleGrab");
+
+        //init ring belt
         collectionMotor = hardwareMap.dcMotor.get("collect");
-        collectionMotor.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        collectionMotor.setDirection(DcMotorSimple.Direction.REVERSE);
+
+        //init ring belt
         ringBeltMotor = hardwareMap.dcMotor.get("belt");
+        ringBeltMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+        ringBeltMotor .setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+
+        //init IMU
+        imu  = hardwareMap.get(BNO055IMU.class, "imu");
 
         BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
 
@@ -196,18 +225,39 @@ public class   Robot {
 
         imu.startAccelerationIntegration(startPosition,startVelocity, 10);
 
-//        initVuforia();
+        //Init Localization
+        webcam = hardwareMap.get(WebcamName.class, "Webcam 1");
+        initVuforia();
+        webCamServo = hardwareMap.servo.get("look");
+        webCamServo.setDirection(Servo.Direction.REVERSE );
 
         rotation = stateConfiguration.variable("system", "startPos", "direction").value();
         locationX = stateConfiguration.variable("system", "startPos", "x").value();
         locationY = stateConfiguration.variable("system", "startPos", "y").value();
 
-//        double launcherPower = 0;
-//        long launchAccelStart = System.currentTimeMillis();
-//        while (launcherPower < 1) {
-//            launcherPower = (double) (System.currentTimeMillis() - launchAccelStart) / LAUNCH_ACCEL_TIME;
-//            launchMotor.setPower(launcherPower);
-//        }
+        minCheckVelocity =stateConfiguration.variable("system", "tensorFlow", "minCheckV").value();
+        minCheckDurationMs =stateConfiguration.variable("system", "tensorFlow", "minCheckMS").value();
+
+        //Init Launch Motor
+        DcMotor launcher = hardwareMap.dcMotor.get("launcher");
+
+        MotorConfigurationType launchMotorType = launcher.getMotorType();
+        launchMotorType.setGearing(3);
+        launchMotorType.setTicksPerRev(84);
+        launchMotorType.setMaxRPM(2400);
+
+        launchMotor = launcher;
+        launchMotor.setMotorType(launchMotorType);
+        launchMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+
+        if (stateConfiguration.action("system","initLauncher").enabled) {
+            double launcherPower = 0;
+            long launchAccelStart = System.currentTimeMillis();
+            while (launcherPower < LAUNCH_POWER) {
+                launcherPower = (double) ((System.currentTimeMillis() - launchAccelStart) / LAUNCH_ACCEL_TIME) * LAUNCH_POWER;
+                launchMotor.setPower(launcherPower);
+            }
+        }
 
     }
 
@@ -267,7 +317,7 @@ public class   Robot {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters parameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        parameters.minResultConfidence = MINIMUM_CONFIDENCE;
+        parameters.minResultConfidence = stateConfiguration.variable("system", "tensorFlow", "minConfidence").value();
         tfObjectDetector = ClassFactory.getInstance().createTFObjectDetector(parameters, vuforia);
         tfObjectDetector.loadModelFromAsset("UltimateGoal.tflite", "Quad", "Single");
     }
@@ -279,9 +329,8 @@ public class   Robot {
         float imuAngle = -imu.getAngularOrientation().firstAngle;
         double rotationChange = getRelativeAngle(rotationPrevious, imuAngle);
 
-        //todo add this when encoders exist.
-        int encoderLeftCurrent = encoderLeft.getCurrentPosition();
-        int encoderRightCurrent = encoderRight.getCurrentPosition();
+        int encoderLeftCurrent = -encoderLeft.getCurrentPosition();
+        int encoderRightCurrent = -encoderRight.getCurrentPosition();
         int encoderBackCurrent = encoderBack.getCurrentPosition();
 
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
@@ -309,8 +358,8 @@ public class   Robot {
         } else {
             ticksPerDegree = TICKS_PER_ROBOT_DEGREE_CLOCKWISE;
         }
-        //todo:  check if direction of the back encoder gives expected values
-        double sidewaysVector = encoderBackChange - (rotationChange* ticksPerDegree);
+
+        double sidewaysVector = encoderBackChange + (rotationChange* ticksPerDegree);
 
         double magnitude = Math.sqrt((forwardVector*forwardVector) + (sidewaysVector*sidewaysVector));
         double direction = Math.toRadians(rotation + (rotationChange/2)) + Math.atan2(sidewaysVector,forwardVector);
@@ -324,14 +373,15 @@ public class   Robot {
         rotation += rotationChange;
 
 
-        double totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightCurrent) + Math.abs(encoderBackChange);
+        totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) + Math.abs(encoderBackChange);
 
-        if (totalV < MIN_CHECK_VELOCITY) {
+
+        if (totalV < minCheckVelocity) {
             long timeCurrent = System.currentTimeMillis();
 
             if (timeStartZeroVelocity == 0) {
                 timeStartZeroVelocity = timeCurrent;
-            } else if (timeCurrent - timeStartZeroVelocity >= MIN_CHECK_DURATION_MS) {
+            } else if (timeCurrent - timeStartZeroVelocity >= minCheckDurationMs) {
                 syncWithVuforia();
             }
 
@@ -346,15 +396,6 @@ public class   Robot {
         if (rotation < -180) {
             rotation += 360;
         }
-
-    }
-
-    public void checkVuforiaSync() {
-
-        double V1 = driveFrontLeft.motor.getPower();
-        double V2 = driveFrontRight.motor.getPower();
-        double V3 = driveBackLeft.motor.getPower();
-        double V4 = driveBackRight.motor.getPower();
 
     }
 
@@ -480,23 +521,23 @@ public class   Robot {
         double powerBackRight = scalar * (p + turnCorrection);
         double powerBackLeft = scalar * (q - turnCorrection);
 
-        //the turnCorrection often results in powers with magnitudes significantly larger than the
-        //scalar. The scaleRatio mitigates this without altering the quality of the motion by making
-        //it so that the average of the four magnitudes is equal to the scalar magnitude.
-        double powerSum = Math.abs(powerForwardRight) + Math.abs(powerForwardLeft) +
-                Math.abs(powerBackRight) + Math.abs(powerBackLeft);
-        double scaleRatio = (4 * Math.abs(scalar))/powerSum;
-
-        powerForwardRight *= scaleRatio;
-        powerForwardLeft *= scaleRatio;
-        powerBackRight *= scaleRatio;
-        powerBackLeft *= scaleRatio;
+//        //the turnCorrection often results in powers with magnitudes significantly larger than the
+//        //scalar. The scaleRatio mitigates this without altering the quality of the motion by making
+//        //it so that the average of the four magnitudes is equal to the scalar magnitude.
+//        double powerSum = Math.abs(powerForwardRight) + Math.abs(powerForwardLeft) +
+//                Math.abs(powerBackRight) + Math.abs(powerBackLeft);
+//        double scaleRatio = (4 * Math.abs(scalar))/powerSum;
+//
+//        powerForwardRight *= scaleRatio;
+//        powerForwardLeft *= scaleRatio;
+//        powerBackRight *= scaleRatio;
+//        powerBackLeft *= scaleRatio;
 
 
         if (relativeRotation != 0) {
             double momentumRelative =  angularVelocity * (relativeRotation / Math.abs(relativeRotation));
-            double exponential = Math.pow(MOMENTUM_CORRECTION, -momentumRelative);
-            double momentumCorrection = (2*exponential)/(1+exponential);
+            double exponential = Math.pow(MOMENTUM_CORRECTION, MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
+            double momentumCorrection = (MOMENTUM_MAX_CORRECTION*exponential)/(1+exponential);
             powerForwardRight *= momentumCorrection;
             powerForwardLeft *= momentumCorrection;
             powerBackRight *= momentumCorrection;
@@ -532,21 +573,6 @@ public class   Robot {
         return powers;
     }
 
-    public void brakeAll() {
-        driveFrontLeft.brake();
-        driveFrontRight.brake();
-        driveBackLeft.brake();
-        driveBackRight.brake();
-    }
-
-    //sets the position the motors will lock to when braking to the motor's current position.
-    public void setBrakePosAll() {
-        driveFrontLeft.setBrakePosition();
-        driveFrontRight.setBrakePosition();
-        driveBackLeft.setBrakePosition();
-        driveBackRight.setBrakePosition();
-    }
-
     //Outputs the power necessary to turn and face a provided direction
     public double[] getFacePowers(float direction, double power) {
         angularVelocity = imu.getAngularVelocity().xRotationRate;
@@ -568,20 +594,21 @@ public class   Robot {
         return powers;
     }
 
+    public void ringBeltOn() {
+        ringBeltMotor.setPower(RING_BELT_POWER);
+    }
+
     public int getBeltPos(){
         return loopPos(ringBeltMotor.getCurrentPosition());
     }
 
     public int loopPos(int pos) {
-        if (pos < 0) {
-         pos += RING_BELT_LOOP_TICKS;
-        }
         pos %= RING_BELT_LOOP_TICKS;
         return pos;
     }
 
-    public void record() {
-        TestingRecord+="\n"+angularVelocity;
+    public void record(String record) {
+        TestingRecord+="\n"+record;
     }
 
     public void saveRecording() {

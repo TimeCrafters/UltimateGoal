@@ -6,10 +6,13 @@ import org.timecrafters.UltimateGoal.Competition.Robot;
 public class OdometryCalibration extends CyberarmState {
 
     private Robot robot;
-    private float rotation;
+    private float rotation = 0;
+    private float rotationPrev = 0;
     private int currentTick;
     private double ticksPerDegreeClockwise;
     private double ticksPerDegreeCounterClockwise;
+    private long timePrevious;
+    private long timeChange;
 
     public OdometryCalibration(Robot robot) {
         this.robot = robot;
@@ -17,21 +20,37 @@ public class OdometryCalibration extends CyberarmState {
 
     @Override
     public void exec() {
+        long timeCurrent = System.currentTimeMillis();
+        timeChange = timeCurrent - timePrevious;
 
-        double power = 0.1;
-        rotation = -robot.imu.getAngularOrientation().firstAngle;
-        currentTick = robot.encoderBack.getCurrentPosition();
+        if (timeChange >= 1200) {
+            timePrevious = timeCurrent;
 
-        if (engine.gamepad1.x) {
-            robot.setDrivePower(power, -power, power, -power);
-            ticksPerDegreeClockwise = currentTick/rotation;
-        } else if(engine.gamepad1.y) {
-            robot.setDrivePower(-power, power, -power, power);
-            ticksPerDegreeCounterClockwise = currentTick/rotation;
-        } else {
-            robot.setDrivePower(0,0,0,0);
+
+            double power = 0.25;
+            float imu = -robot.imu.getAngularOrientation().firstAngle;
+            rotation += robot.getRelativeAngle(imu, rotationPrev);
+            rotationPrev = imu;
+
+            currentTick = robot.encoderBack.getCurrentPosition();
+
+            if (engine.gamepad1.x) {
+                robot.setDrivePower(power, -power, power, -power);
+                ticksPerDegreeClockwise = currentTick / rotation;
+            } else if (engine.gamepad1.y) {
+                robot.setDrivePower(-power, power, -power, power);
+                ticksPerDegreeCounterClockwise = currentTick / rotation;
+            } else {
+                robot.setDrivePower(0, 0, 0, 0);
+            }
         }
 
+        if (engine.gamepad1.b) {
+            robot.record("Clockwise : "+ticksPerDegreeClockwise);
+            robot.record("Counter Clockwise : "+ticksPerDegreeCounterClockwise);
+            robot.saveRecording();
+            setHasFinished(true);
+        }
     }
 
     @Override

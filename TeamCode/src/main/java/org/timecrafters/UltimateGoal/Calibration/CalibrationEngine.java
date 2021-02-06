@@ -19,6 +19,6 @@ public class CalibrationEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        addState(new VelocityTest(robot));
+        addState(new CalibrateRingBeltLoop(robot));
     }
 }

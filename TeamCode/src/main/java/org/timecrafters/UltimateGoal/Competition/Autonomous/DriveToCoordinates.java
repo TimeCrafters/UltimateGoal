@@ -11,11 +11,12 @@ public class DriveToCoordinates extends CyberarmState {
     private double xTarget;
     private double yTarget;
     private float faceAngle;
-    private double tolerance;
+    private double tolerancePos;
     private double power;
     private boolean braking;
     private long breakStartTime;
     private long breakTime;
+    private boolean autoFace;
 
     public DriveToCoordinates(Robot robot, String groupName, String actionName) {
         this.robot = robot;
@@ -23,11 +24,12 @@ public class DriveToCoordinates extends CyberarmState {
         this.actionName = actionName;
     }
 
-    public DriveToCoordinates(double xTarget, double yTarget, float faceAngle, double tolerance, double power, long breakStartTime) {
+    public DriveToCoordinates(Robot robot, double xTarget, double yTarget, float faceAngle, double tolerance, double power, long breakStartTime) {
+        this.robot = robot;
         this.xTarget = xTarget;
         this.yTarget = yTarget;
         this.faceAngle = faceAngle;
-        this.tolerance = tolerance;
+        this.tolerancePos = tolerance;
         this.power = power;
         this.breakTime = breakTime;
     }
@@ -35,18 +37,25 @@ public class DriveToCoordinates extends CyberarmState {
     @Override
     public void init() {
         if (!groupName.equals("manual")) {
-            xTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "x").value());
-            yTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "y").value());
+            xTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "xPos").value());
+            yTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "yPos").value());
             power = robot.stateConfiguration.variable(groupName, actionName, "power").value();
-            faceAngle = robot.stateConfiguration.variable(groupName, actionName, "face").value();
-            tolerance = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "tol").value());
-            breakTime = robot.stateConfiguration.variable(groupName, actionName, "breakMS").value();
+            tolerancePos = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "tolPos").value());
+            breakTime = robot.stateConfiguration.variable(groupName, actionName, "brakeMS").value();
+
+            try {
+                faceAngle = robot.stateConfiguration.variable(groupName, actionName, "face").value();
+            } catch (NullPointerException e) {
+                autoFace = true;
+            }
         }
     }
 
     @Override
     public void start() {
-
+        if (autoFace) {
+            faceAngle = robot.getAngleToPosition(xTarget,yTarget);
+        }
     }
 
     @Override
@@ -54,18 +63,17 @@ public class DriveToCoordinates extends CyberarmState {
 
         double distanceToTarget = Math.hypot(xTarget - robot.getLocationX(), yTarget - robot.getLocationY());
 
-        if (distanceToTarget > tolerance) {
+        if (distanceToTarget > tolerancePos) {
             double[] powers = robot.getMecanumPowers(robot.getAngleToPosition(xTarget,yTarget), power, faceAngle);
             robot.setDrivePower(powers[0], powers[1],powers[2],powers[3]);
             braking = false;
         } else {
+            long currentTime = System.currentTimeMillis();
             if (!braking) {
-                breakStartTime = System.currentTimeMillis();
-                robot.setBrakePosAll();
+                breakStartTime = currentTime;
                 braking = true;
             }
-            robot.brakeAll();
-            setHasFinished(System.currentTimeMillis() - breakStartTime > breakTime);
+            setHasFinished(currentTime - breakStartTime >= breakTime);
         }
 
     }

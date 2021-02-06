@@ -1,12 +1,12 @@
-package org.timecrafters.UltimateGoal.Competition.Autonomous;
+package org.timecrafters.UltimateGoal.Competition.PreInit;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Robot;
 
-@Autonomous (name = "Autonomous")
-public class AutoEngine extends CyberarmEngine {
+@Autonomous (name = "Load Rings")
+public class PreInitEngine extends CyberarmEngine {
 
     private Robot robot;
 
@@ -19,9 +19,7 @@ public class AutoEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        //drive to view
-        addState(new DriveToCoordinates(robot, "auto", "001_0"));
-        addState(new DriveToCoordinates(robot, "auto", "001_0"));
-
+        addState(new FindLimitSwitch(robot));
+        addState(new LoadRings(robot));
     }
 }

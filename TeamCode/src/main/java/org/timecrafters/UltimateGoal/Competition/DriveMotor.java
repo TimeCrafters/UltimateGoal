@@ -10,7 +10,7 @@ public class DriveMotor {
     private int brakePosition;
     private MotorConfigurationType motorType;
     private DcMotorSimple.Direction direction;
-    static final double FINE_CORRECTION = 0.02;
+    static final double FINE_CORRECTION = 0.05;
     static final double LARGE_CORRECTION = 0.03;
 
     public DriveMotor(DcMotor motor, MotorConfigurationType motorType, DcMotorSimple.Direction direction) {
@@ -20,9 +20,9 @@ public class DriveMotor {
     }
 
     public void init() {
-        motor.setMotorType(motorType);
-        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+//        motor.setMotorType(motorType);
+//        motor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+//        motor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         motor.setDirection(direction);
     }
 

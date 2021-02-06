@@ -49,7 +49,7 @@ public class MecanumFunctionTest extends CyberarmState {
     @Override
     public void exec() {
         robot.updateLocation();
-        robot.record();
+//        robot.record();/////////////
 
         AngularVelocity angularVelocity = robot.imu.getAngularVelocity();
 
@@ -129,9 +129,9 @@ public class MecanumFunctionTest extends CyberarmState {
         engine.telemetry.addData("Z", aVz);
 
         engine.telemetry.addLine("Powers");
-        engine.telemetry.addData("FL", robot.driveFrontLeft.motor.getPower());
-        engine.telemetry.addData("FR", robot.driveFrontRight.motor.getPower());
-        engine.telemetry.addData("BL", robot.driveBackLeft.motor.getPower());
-        engine.telemetry.addData("BR", robot.driveBackRight.motor.getPower());
+        engine.telemetry.addData("FL", robot.driveFrontLeft.getPower());
+        engine.telemetry.addData("FR", robot.driveFrontRight.getPower());
+        engine.telemetry.addData("BL", robot.driveBackLeft.getPower());
+        engine.telemetry.addData("BR", robot.driveBackRight.getPower());
     }
 }

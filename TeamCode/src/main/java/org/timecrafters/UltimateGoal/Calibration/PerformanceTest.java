@@ -19,7 +19,7 @@ public class PerformanceTest extends CyberarmState {
     @Override
     public void exec() {
         robot.updateLocation();
-        robot.record();
+//        robot.record();
 
         if (engine.gamepad1.x) {
             double[] powers = robot.getMecanumPowers(0, 1, 0);
