@@ -15,7 +15,7 @@ public class DriveToCoordinates extends CyberarmState {
     private double power;
     private boolean braking;
     private long breakStartTime;
-    private long breakTime;
+    private long brakeTime;
     private boolean autoFace;
 
     public DriveToCoordinates(Robot robot, String groupName, String actionName) {
@@ -24,14 +24,14 @@ public class DriveToCoordinates extends CyberarmState {
         this.actionName = actionName;
     }
 
-    public DriveToCoordinates(Robot robot, double xTarget, double yTarget, float faceAngle, double tolerance, double power, long breakStartTime) {
+    public DriveToCoordinates(Robot robot, double xTarget, double yTarget, float faceAngle, double tolerance, double power, long brakeTime) {
         this.robot = robot;
         this.xTarget = xTarget;
         this.yTarget = yTarget;
         this.faceAngle = faceAngle;
         this.tolerancePos = tolerance;
         this.power = power;
-        this.breakTime = breakTime;
+        this.brakeTime = brakeTime;
     }
 
     @Override
@@ -41,7 +41,7 @@ public class DriveToCoordinates extends CyberarmState {
             yTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "yPos").value());
             power = robot.stateConfiguration.variable(groupName, actionName, "power").value();
             tolerancePos = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "tolPos").value());
-            breakTime = robot.stateConfiguration.variable(groupName, actionName, "brakeMS").value();
+            brakeTime = robot.stateConfiguration.variable(groupName, actionName, "brakeMS").value();
 
             try {
                 faceAngle = robot.stateConfiguration.variable(groupName, actionName, "face").value();
@@ -53,6 +53,11 @@ public class DriveToCoordinates extends CyberarmState {
 
     @Override
     public void start() {
+
+        if (robot.stateConfiguration.action(groupName,actionName).enabled) {
+            setHasFinished(true);
+        }
+
         if (autoFace) {
             faceAngle = robot.getAngleToPosition(xTarget,yTarget);
         }
@@ -73,7 +78,7 @@ public class DriveToCoordinates extends CyberarmState {
                 breakStartTime = currentTime;
                 braking = true;
             }
-            setHasFinished(currentTime - breakStartTime >= breakTime);
+            setHasFinished(currentTime - breakStartTime >= brakeTime);
         }
 
     }

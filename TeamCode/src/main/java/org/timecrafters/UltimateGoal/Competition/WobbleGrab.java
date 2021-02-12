@@ -17,9 +17,9 @@ public class WobbleGrab extends CyberarmState {
         this.open = open;
     }
 
-    public WobbleGrab(Robot robot, boolean armUp, long waitTime) {
+    public WobbleGrab(Robot robot, boolean open, long waitTime) {
         this.robot = robot;
-        this.open = armUp;
+        this.open = open;
         this.waitTime = waitTime;
     }
 

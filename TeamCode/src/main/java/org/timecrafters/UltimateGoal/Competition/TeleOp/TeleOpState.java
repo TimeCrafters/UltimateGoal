@@ -14,11 +14,12 @@ public class TeleOpState extends CyberarmState {
     private double leftJoystickMagnitude;
     private float rightJoystickDegrees;
     private double rightJoystickMagnitude;
+    private float cardinalSnapping;
+    private float pairSnapping;
 
     private double[] powers = {0,0,0,0};
     private double drivePower = 1;
     private static final double TURN_POWER = 1;
-    private boolean toggleSpeedInput = false;
     private Launch launchState;
     private boolean launching;
     private ProgressRingBelt ringBeltState;
@@ -27,9 +28,10 @@ public class TeleOpState extends CyberarmState {
     private boolean yPrev;
     private boolean aPrev;
     private boolean bPrev;
-    private boolean rbPrev;
+    private boolean lbPrev;
     private boolean wobbleArmUp = true;
     private boolean wobbleGrabOpen = false;
+
 
 
     private boolean launchInput = false;
@@ -40,8 +42,9 @@ public class TeleOpState extends CyberarmState {
     }
 
     @Override
-    public void start() {
-
+    public void init() {
+        cardinalSnapping = robot.stateConfiguration.variable("tele","control", "cardinalSnapping").value();
+        pairSnapping = robot.stateConfiguration.variable("tele","control", "pairSnapping").value();
     }
 
     @Override
@@ -57,14 +60,19 @@ public class TeleOpState extends CyberarmState {
         double rightJoystickX = engine.gamepad1.right_stick_x;
         double rightJoystickY = engine.gamepad1.right_stick_y;
 
-        rightJoystickDegrees = (float) Math.toDegrees(Math.atan2(rightJoystickX, -rightJoystickY));
+        rightJoystickDegrees = snapToCardinal((float) Math.toDegrees(Math.atan2(rightJoystickX, -rightJoystickY)),cardinalSnapping,0);
         rightJoystickMagnitude = Math.hypot(rightJoystickX, rightJoystickY);
 
-        if (leftJoystickMagnitude > 0.66) {
-            drivePower = 1 ;
-        } else {
-            drivePower = 0.6;
+
+        boolean lb = engine.gamepad1.left_stick_button;
+        if (lb && !lbPrev) {
+            if (drivePower == 1) {
+                drivePower = 0.5;
+            } else {
+                drivePower = 1;
+            }
         }
+        lbPrev = lb;
 
         double[] powers = {0,0,0,0};
 
@@ -73,18 +81,18 @@ public class TeleOpState extends CyberarmState {
 
             //Launch Sequence
 
-            double distanceToTarget = Math.hypot(Robot.LAUNCH_POSITION_X - robot.getLocationX(), Robot.LAUNCH_POSITION_Y - robot.getLocationY());
+            double distanceToTarget = Math.hypot(robot.launchPositionX - robot.getLocationX(), robot.launchPositionY - robot.getLocationY());
             if (distanceToTarget > Robot.LAUNCH_TOLERANCE_POS) {
-                powers = robot.getMecanumPowers(robot.getAngleToPosition(Robot.LAUNCH_POSITION_X, Robot.LAUNCH_POSITION_Y), drivePower, Robot.LAUNCH_ROTATION);
+                powers = robot.getMecanumPowers(robot.getAngleToPosition(robot.launchPositionX, robot.launchPositionY), drivePower, robot.launchRotation);
 
-            } else if (robot.getRelativeAngle(Robot.LAUNCH_ROTATION, robot.getRotation()) > Robot.LAUNCH_TOLERANCE_FACE) {
+            } else if (robot.getRelativeAngle(robot.launchRotation, robot.getRotation()) > Robot.LAUNCH_TOLERANCE_FACE) {
 
                 launchState = new Launch(robot);
                 addParallelState(launchState);
 
             } else {
 
-                double[] facePowers =  robot.getFacePowers(Robot.LAUNCH_ROTATION, TURN_POWER);
+                double[] facePowers =  robot.getFacePowers(robot.launchRotation, TURN_POWER);
                 powers = new double[]{facePowers[0], facePowers[1], facePowers[0], facePowers[1]};
 
             }
@@ -97,14 +105,16 @@ public class TeleOpState extends CyberarmState {
 
             if (rightJoystickMagnitude == 0) {
                 if (leftJoystickMagnitude !=0) {
-                    powers = robot.getMecanumPowers(leftJoystickDegrees, drivePower, leftJoystickDegrees);
+                    float direction = snapToCardinal(leftJoystickDegrees,cardinalSnapping,0);
+                    powers = robot.getMecanumPowers(direction, drivePower, direction);
                 }
             } else {
                 if (leftJoystickMagnitude == 0) {
                     double[] facePowers =  robot.getFacePowers(rightJoystickDegrees, TURN_POWER * rightJoystickMagnitude);
                     powers = new double[]{facePowers[0], facePowers[1], facePowers[0], facePowers[1]};
                 } else {
-                    powers = robot.getMecanumPowers(leftJoystickDegrees, drivePower, rightJoystickDegrees);
+
+                    powers = robot.getMecanumPowers(snapToCardinal(leftJoystickDegrees,pairSnapping,rightJoystickDegrees), drivePower, rightJoystickDegrees);
                 }
             }
         }
@@ -113,16 +123,15 @@ public class TeleOpState extends CyberarmState {
 
         this.powers = powers;
 
+        if (childrenHaveFinished()) {
+            robot.collectionMotor.setPower(engine.gamepad2.right_trigger);
+        } else {
+            robot.collectionMotor.setPower(0);
+        }
 
         boolean x = engine.gamepad2.x;
         if (x && !xPrev && childrenHaveFinished()) {
-            if (CollectorOn) {
-                robot.collectionMotor.setPower(0);
-                CollectorOn = false;
-            } else {
-                robot.collectionMotor.setPower(1);
-                CollectorOn = true;
-            }
+            addParallelState(new ProgressRingBelt(robot));
         }
         xPrev = x;
 
@@ -135,41 +144,48 @@ public class TeleOpState extends CyberarmState {
 
         boolean a = engine.gamepad2.a;
         if (a && !aPrev && childrenHaveFinished()) {
-            addParallelState(new ProgressRingBelt(robot));
+            wobbleGrabOpen = !wobbleGrabOpen;
+            addParallelState(new WobbleGrab( robot, wobbleGrabOpen, 100));
         }
         aPrev = a;
 
         boolean b = engine.gamepad2.b;
-        if (b && !bPrev) {
+        if (b && !bPrev && childrenHaveFinished()) {
             wobbleArmUp = !wobbleArmUp;
             addParallelState(new WobbleArm(robot, wobbleArmUp, 100));
         }
         bPrev = b;
 
-        boolean rb = engine.gamepad2.right_bumper;
-        if (rb && !rbPrev) {
-            wobbleGrabOpen = !wobbleGrabOpen ;
-            addParallelState(new WobbleGrab( robot, wobbleGrabOpen, 100));
-        }
-        rbPrev = rb;
+
     }
 
     @Override
     public void telemetry() {
-        engine.telemetry.addLine("Powers");
-        for (double power : powers) {
-            engine.telemetry.addData(" ", power);
-        }
 
+       engine.telemetry.addData("childrenHaveFinished", childrenHaveFinished());
+       for (CyberarmState state : children) {
+           engine.telemetry.addLine(""+state.getClass());
+       }
 
         engine.telemetry.addLine("Location");
-        engine.telemetry.addData("Position ","("+round(robot.ticksToInches(robot.getLocationX()))+","+round(robot.ticksToInches(robot.getLocationY()))+")");
+        engine.telemetry.addData("Position ","("+round(robot.ticksToInches(robot.getLocationX()),0.1)+","+round(robot.ticksToInches(robot.getLocationY()),0.1)+")");
         engine.telemetry.addData("Rotation ", robot.getRotation());
         engine.telemetry.addData("totalV", robot.totalV);
     }
 
-    private float round(double number) {
-        return ((float) Math.floor(number*100)) / 100;
+    private float round(double number,double unit) {
+        return (float) (Math.floor(number/unit) * unit);
+    }
+
+    private float snapToCardinal(float angle, float snapping, float offset) {
+        int o = (int) offset + 180;
+        o %= 90;
+        for (int cardinal = o-180; (cardinal <= 180+o && cardinal != angle); cardinal += 90) {
+            if (angle >= cardinal-snapping && angle <= cardinal+snapping) {
+                angle = cardinal;
+            }
+        }
+        return angle;
     }
 
 

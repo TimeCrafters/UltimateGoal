@@ -6,15 +6,10 @@ public class ProgressRingBelt extends CyberarmState {
 
     private Robot robot;
     private int targetPos;
-    private boolean useLaunchPrep;
+    private boolean prepLaunch;
 
     public ProgressRingBelt(Robot robot) {
         this.robot = robot;
-    }
-
-    @Override
-    public void init() {
-        useLaunchPrep = (robot.launchMotor.getPower() == 0);
     }
 
     @Override
@@ -28,6 +23,7 @@ public class ProgressRingBelt extends CyberarmState {
             targetPos = robot.loopPos(currentPos + 160);
             robot.ringBeltOn();
             robot.ringBeltStage += 1;
+            prepLaunch = !robot.initLauncher;
         }
 
     }
@@ -38,7 +34,7 @@ public class ProgressRingBelt extends CyberarmState {
         if (currentPos >= targetPos && currentPos < targetPos + Robot.RING_BELT_GAP) {
             robot.ringBeltMotor.setPower(0);
 
-            if(useLaunchPrep) {
+            if(prepLaunch) {
                 robot.launchMotor.setPower(Robot.LAUNCH_POWER);
             }
 

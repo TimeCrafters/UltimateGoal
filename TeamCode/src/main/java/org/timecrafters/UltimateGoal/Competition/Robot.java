@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
@@ -60,9 +61,9 @@ public class Robot {
 
     //Steering Constants
     static final double FINE_CORRECTION = 0.055 ;
-    static final double LARGE_CORRECTION = 0.025   ;
-    static final double MOMENTUM_CORRECTION = 1.02;
-    static final double MOMENTUM_MAX_CORRECTION = 1.3;
+    static final double LARGE_CORRECTION = 0.025;
+    static final double MOMENTUM_CORRECTION = 1.045;
+    static final double MOMENTUM_MAX_CORRECTION = 1.4;
     static final double MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(MOMENTUM_MAX_CORRECTION-1)/Math.log10(MOMENTUM_CORRECTION));
 
     //Conversion Constants
@@ -95,13 +96,13 @@ public class Robot {
     public static final double LAUNCH_POWER = 0.75;
 
     private static final long LAUNCH_ACCEL_TIME = 500;
-    public static final double LAUNCH_POSITION_X = 36 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
-    public static final double LAUNCH_POSITION_Y = -8 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
-    public static final float LAUNCH_ROTATION = 0;
+    public double launchPositionX;
+    public double launchPositionY;
+    public float launchRotation;
     public static final double LAUNCH_TOLERANCE_POS = 0.5 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
     public static final double LAUNCH_TOLERANCE_FACE = 0.5;
 
-
+    public boolean initLauncher;
 
     //Ring Intake
     public DcMotor collectionMotor;
@@ -123,8 +124,8 @@ public class Robot {
     public DcMotor wobbleArmMotor;
     public Servo  wobbleGrabServo;
     public static final int WOBBLE_ARM_DOWN = -710;
-
     public static final double WOBBLE_SERVO_MAX = 0.3;
+    public RevColorSensorV3 wobbleColorSensor;
 
     //vuforia navigation
     private WebcamName webcam;
@@ -249,8 +250,11 @@ public class Robot {
         launchMotor = launcher;
         launchMotor.setMotorType(launchMotorType);
         launchMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        launchMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        if (stateConfiguration.action("system","initLauncher").enabled) {
+        initLauncher = stateConfiguration.action("system","initLauncher").enabled;
+
+        if (initLauncher) {
             double launcherPower = 0;
             long launchAccelStart = System.currentTimeMillis();
             while (launcherPower < LAUNCH_POWER) {
@@ -258,6 +262,10 @@ public class Robot {
                 launchMotor.setPower(launcherPower);
             }
         }
+        //
+        launchPositionX = stateConfiguration.variable("system", "launchPos","x").value();
+        launchPositionX = stateConfiguration.variable("system", "launchPos","y").value();
+        launchRotation = stateConfiguration.variable("system", "launchPos","rot").value();
 
     }
 
@@ -353,7 +361,7 @@ public class Robot {
 
         double ticksPerDegree;
 
-        if(rotationChange < 0) {
+        if (rotationChange < 0) {
             ticksPerDegree = TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE;
         } else {
             ticksPerDegree = TICKS_PER_ROBOT_DEGREE_CLOCKWISE;

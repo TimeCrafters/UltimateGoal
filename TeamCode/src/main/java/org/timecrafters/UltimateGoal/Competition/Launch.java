@@ -27,6 +27,11 @@ public class Launch extends CyberarmState {
             if (hasCycled) {
                 robot.ringBeltMotor.setPower(0);
                 robot.ringBeltStage = 0;
+
+                if (!robot.initLauncher) {
+                    robot.launchMotor.setPower(0);
+                }
+
                 setHasFinished(true);
             } else {
                 hasCycled = true;
@@ -34,6 +39,5 @@ public class Launch extends CyberarmState {
         }
         detectedPass = detectingPass;
 
-//        if (robot.getBeltPos() > robot.loopPos(Robot.RING_BELT_GAP * 3) && hasCycled);
     }
 }

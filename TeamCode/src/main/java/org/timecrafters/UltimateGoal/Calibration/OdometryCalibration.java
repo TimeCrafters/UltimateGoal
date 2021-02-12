@@ -32,7 +32,7 @@ public class OdometryCalibration extends CyberarmState {
             rotation += robot.getRelativeAngle(imu, rotationPrev);
             rotationPrev = imu;
 
-            currentTick = robot.encoderBack.getCurrentPosition();
+            currentTick = (robot.encoderRight.getCurrentPosition() + robot.encoderLeft.getCurrentPosition()) / 2;
 
             if (engine.gamepad1.x) {
                 robot.setDrivePower(power, -power, power, -power);
