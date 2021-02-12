@@ -2,7 +2,7 @@ package org.cyberarm.engine.V2;
 
 import android.util.Log;
 
-import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * A State for use with CyberarmEngineV2
@@ -12,7 +12,7 @@ public abstract class CyberarmState implements Runnable {
   private volatile boolean isRunning, hasFinished;
   public static String TAG = "PROGRAM.STATE";
   public CyberarmEngine engine = CyberarmEngine.instance;
-  public ArrayList<CyberarmState> children = new ArrayList<>();
+  public CopyOnWriteArrayList<CyberarmState> children = new CopyOnWriteArrayList<>();
   public long startTime = 0;
   public int insertOffset = 1;
 
@@ -90,7 +90,7 @@ public abstract class CyberarmState implements Runnable {
 
   /**
    * Have all of the states children finished running themselves?
-   * @return Wether or not all children have finished running
+   * @return Whether or not all children have finished running
    */
   public boolean childrenHaveFinished() {
     return childrenHaveFinished(children);
@@ -98,10 +98,10 @@ public abstract class CyberarmState implements Runnable {
 
   /**
    * Have all of the states children finished running themselves?
-   * @param kids ArrayList of children to check for hasFinished()
+   * @param kids CopyOnWriteArrayList of children to check for hasFinished()
    * @return Whether or not all children have finished running
    */
-  public boolean childrenHaveFinished(ArrayList<CyberarmState> kids) {
+  public boolean childrenHaveFinished(CopyOnWriteArrayList<CyberarmState> kids) {
     boolean allDone = true;
 
       for (CyberarmState state : kids) {

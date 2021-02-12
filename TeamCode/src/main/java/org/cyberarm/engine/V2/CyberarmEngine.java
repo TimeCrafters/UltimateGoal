@@ -4,7 +4,7 @@ import android.util.Log;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 
-import java.util.ArrayList;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * CyberarmEngine Version 2.0 | October 26th 2018
@@ -15,11 +15,12 @@ public abstract class CyberarmEngine extends OpMode {
 
   public static CyberarmEngine instance;
   //Array To Hold States
-  private ArrayList<CyberarmState> cyberarmStates = new ArrayList<>();
+  private CopyOnWriteArrayList<CyberarmState> cyberarmStates = new CopyOnWriteArrayList<>();
   private int activeStateIndex = 0;
   private boolean isRunning;
 
-  private static String TAG = "PROGRAM.ENGINE: ";
+  private static String TAG = "PROGRAM.ENGINE";
+  public boolean showStateChildrenListInTelemetry = false;
 
   /**
    * Called when INIT button on Driver Station is pushed
@@ -83,6 +84,11 @@ public abstract class CyberarmEngine extends OpMode {
 
       // Add telemetry to show currently running state
     telemetry.addLine("Running state: " +state.getClass().getSimpleName() + ". State: " + activeStateIndex + " of " + (cyberarmStates.size()-1));
+    if (showStateChildrenListInTelemetry && state.hasChildren()) {
+      for(CyberarmState child: state.children) {
+        telemetry.addLine("    Child: " + child.getClass().getSimpleName() + " [" + child.children.size() + "] grandchildren");
+      }
+    }
     telemetry.addLine();
 
     if (state.getHasFinished() && state.childrenHaveFinished()) {
