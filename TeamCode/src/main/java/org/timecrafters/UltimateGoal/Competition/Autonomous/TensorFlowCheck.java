@@ -18,6 +18,7 @@ public class TensorFlowCheck extends CyberarmState {
     public double wobblePosX;
     public double wobblePosY;
     private int manualPath;
+    private String status;
 
     public TensorFlowCheck(Robot robot, String group, String action) {
         this.robot = robot;
@@ -33,47 +34,61 @@ public class TensorFlowCheck extends CyberarmState {
 
     @Override
     public void start() {
-
+        if (!robot.stateConfiguration.action(group,action).enabled) {
+            manualPath = -1;
+        } else {
+            robot.tfObjectDetector.activate();
+        }
     }
 
     @Override
     public void exec() {
 
-         if (manualPath == -1) {
-             recognitions = robot.tfObjectDetector.getUpdatedRecognitions();
+        if (runTime() < checkTime) {
+            if (manualPath != -1) {
+                recognitions = robot.tfObjectDetector.getUpdatedRecognitions();
 
-             if (recognitions != null) {
+                if (recognitions != null) {
+                    if (recognitions.size() == 1) {
+                        String label = recognitions.get(0).getLabel();
+                        if (label.equals("Single")) {
+                            path = 1;
+                        } else if (label.equals("Quad")) {
+                            path = 2;
+                        }
+                    } else if (recognitions.size() > 1) {
+                        path = 1;
+                    }
+                }
 
-                 if (recognitions.size() == 1) {
-                     Recognition recognition = recognitions.get(0);
-                     String label = recognition.getLabel();
-                     if (label.equals("Single")) {
-                         path = 1;
-                     } else if (label.equals("Quad")) {
-                         path = 2;
-                     }
-                 } else if (recognitions.size() > 1) {
-                     path = 1;
-                 }
-             }
-         } else {
-             path = manualPath;
-         }
+            } else {
+                path = manualPath;
+            }
+        } else {
+            robot.tfObjectDetector.deactivate();
 
-         if (runTime() >= checkTime) {
             if (path == 0) {
-                wobblePosX = robot.stateConfiguration.variable("auto", "_goalPos0","x").value();
-                wobblePosY = robot.stateConfiguration.variable("auto", "_goalPos0","y").value();
+                robot.wobbleScoreX = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto", "_goalPos0","x").value());
+                robot.wobbleScoreY = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto", "_goalPos0","y").value());
             }
             if (path == 1) {
-                 wobblePosX = robot.stateConfiguration.variable("auto", "_goalPos1","x").value();
-                 wobblePosY = robot.stateConfiguration.variable("auto", "_goalPos1","y").value();
+                robot.wobbleScoreX = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto", "_goalPos1","x").value());
+                robot.wobbleScoreY = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto", "_goalPos1","y").value());
             }
              if (path == 2) {
-                 wobblePosX = robot.stateConfiguration.variable("auto", "_goalPos2","x").value();
-                 wobblePosY = robot.stateConfiguration.variable("auto", "_goalPos2","y").value();
+                 robot.wobbleScoreX = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto", "_goalPos2","x").value());
+                 robot.wobbleScoreY = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto", "_goalPos2","y").value());
              }
-         }
+             // make the servo look up once we're done using tensorFlow
+             robot.webCamServo.setPosition(0);
+             robot.launchMotor.setPower(Robot.LAUNCH_POWER);
 
+             setHasFinished(true);
+         }
+    }
+
+    @Override
+    public void telemetry() {
+        engine.telemetry.addData("Chosen Path", path);
     }
 }

@@ -5,6 +5,8 @@ import org.cyberarm.engine.V2.CyberarmState;
 public class Launch extends CyberarmState {
 
     private Robot robot;
+    private String groupName;
+    private String actionName;
     boolean hasCycled;
     boolean detectedPass;
 
@@ -12,9 +14,23 @@ public class Launch extends CyberarmState {
         this.robot = robot;
     }
 
+    public Launch(Robot robot, String groupName, String actionName) {
+        this.robot = robot;
+        this.groupName = groupName;
+        this.actionName = actionName;
+    }
+
     @Override
     public void start() {
-        robot.ringBeltOn();
+        try {
+            if (robot.stateConfiguration.action(groupName, actionName).enabled) {
+                robot.ringBeltOn();
+            } else {
+                setHasFinished(true);
+            }
+        } catch (NullPointerException e){
+            robot.ringBeltOn();
+        }
     }
 
     @Override

@@ -20,6 +20,8 @@ public class OdometryCalibration extends CyberarmState {
 
     @Override
     public void exec() {
+        robot.updateLocation();
+
         long timeCurrent = System.currentTimeMillis();
         timeChange = timeCurrent - timePrevious;
 
@@ -32,7 +34,7 @@ public class OdometryCalibration extends CyberarmState {
             rotation += robot.getRelativeAngle(imu, rotationPrev);
             rotationPrev = imu;
 
-            currentTick = (robot.encoderRight.getCurrentPosition() + robot.encoderLeft.getCurrentPosition()) / 2;
+            currentTick = (robot.encoderRight.getCurrentPosition() - robot.encoderLeft.getCurrentPosition()) / 2;
 
             if (engine.gamepad1.x) {
                 robot.setDrivePower(power, -power, power, -power);
@@ -55,9 +57,18 @@ public class OdometryCalibration extends CyberarmState {
 
     @Override
     public void telemetry() {
-        engine.telemetry.addData("degrees", rotation);
-        engine.telemetry.addData("ticks", currentTick);
+        engine.telemetry.addData("Position ","("+round(robot.ticksToInches(robot.getLocationX()),0.1)+","+round(robot.ticksToInches(robot.getLocationY()),0.1)+")");
+        engine.telemetry.addData("Rotation ", robot.getRotation());
+//
+//        engine.telemetry.addData("degrees", rotation);
+        engine.telemetry.addData("ticks", robot.encoderRight.getCurrentPosition() );
         engine.telemetry.addData("Clockwise", ticksPerDegreeClockwise);
         engine.telemetry.addData("CounterClockwise", ticksPerDegreeCounterClockwise);
+//        engine.telemetry.addData("forward", robot.forwardVector);
+//        engine.telemetry.addData("sideways", robot.sidewaysVector);
+    }
+
+    private float round(double number,double unit) {
+        return (float) (Math.floor(number/unit) * unit);
     }
 }

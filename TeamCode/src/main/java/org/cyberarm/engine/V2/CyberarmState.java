@@ -72,7 +72,11 @@ public abstract class CyberarmState implements Runnable {
     Log.i(TAG, "Adding " + state.getClass() + " to " + this.getClass());
     children.add(state);
 
-    if (isRunning()) { state.init(); engine.runState(state); }
+    if (isRunning()) {
+      state.init();
+      engine.runState(state);
+      Log.i(TAG, "Started " + state.getClass() + " in " + this.getClass());
+    }
 
     return state;
   }

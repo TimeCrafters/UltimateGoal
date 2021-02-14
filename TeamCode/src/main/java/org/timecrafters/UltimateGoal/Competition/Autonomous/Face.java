@@ -9,7 +9,7 @@ public class Face extends CyberarmState {
     private String groupName = "manual";
     private String actionName;
     private float faceAngle;
-    private double toleranceFace;
+    private float toleranceFace;
     private double power;
     private boolean braking;
     private long breakStartTime;
@@ -22,7 +22,7 @@ public class Face extends CyberarmState {
         this.actionName = actionName;
     }
 
-    public Face(Robot robot, float faceAngle, double toleranceFace, double power, long breakTime) {
+    public Face(Robot robot, float faceAngle, float toleranceFace, double power, long breakTime) {
         this.robot = robot;
         this.faceAngle = faceAngle;
         this.toleranceFace = toleranceFace;
@@ -32,14 +32,15 @@ public class Face extends CyberarmState {
 
     @Override
     public void init() {
+
         if (!groupName.equals("manual")) {
             power = robot.stateConfiguration.variable(groupName, actionName, "power").value();
             toleranceFace = robot.stateConfiguration.variable(groupName, actionName, "tolFace").value();
-            breakTime = robot.stateConfiguration.variable(groupName, actionName, "brake MS").value();
+            breakTime = robot.stateConfiguration.variable(groupName, actionName, "brakeMS").value();
 
             try {
                 faceAngle = robot.stateConfiguration.variable(groupName, actionName, "faceAngle").value();
-            } catch (NullPointerException e) {
+            } catch (RuntimeException e) {
                 autoFace = true;
             }
         }
@@ -47,19 +48,25 @@ public class Face extends CyberarmState {
 
     @Override
     public void start() {
-        if (autoFace) {
-            double x = robot.stateConfiguration.variable(groupName, actionName, "faceX").value();
-            double y = robot.stateConfiguration.variable(groupName, actionName, "faceY").value();
-            faceAngle = robot.getAngleToPosition(x,y);
+
+        if (!groupName.equals("manual")) {
+            setHasFinished(!robot.stateConfiguration.action(groupName, actionName).enabled);
+
+
+            if (autoFace) {
+                double x = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "faceX").value());
+                double y = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "faceY").value());
+                faceAngle = robot.getAngleToPosition(x, y);
+            }
         }
     }
 
     @Override
     public void exec() {
-
+        robot.updateLocation();
+        double[] powers = robot.getFacePowers(faceAngle,power);
+        robot.setDrivePower(powers[0], powers[1],powers[0],powers[1]);
         if (Math.abs(robot.getRelativeAngle(faceAngle,robot.getRotation())) > toleranceFace) {
-            double[] powers = robot.getFacePowers(faceAngle,power);
-            robot.setDrivePower(powers[0], powers[1],powers[0],powers[1]);
             braking = false;
         } else {
             long currentTime = System.currentTimeMillis();
@@ -67,7 +74,16 @@ public class Face extends CyberarmState {
                 breakStartTime = currentTime;
                 braking = true;
             }
-            setHasFinished(currentTime - breakStartTime >= breakTime);
+            if (currentTime - breakStartTime >= breakTime) {
+                setHasFinished(true);
+                robot.setDrivePower(0,0,0,0);
+            }
         }
+    }
+
+    @Override
+    public void telemetry() {
+        engine.telemetry.addData("target angle", faceAngle);
+        engine.telemetry.addData("current angle", robot.getRotation());
     }
 }

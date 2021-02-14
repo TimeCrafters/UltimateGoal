@@ -32,10 +32,14 @@ public class WobbleGrab extends CyberarmState {
 
     @Override
     public void start() {
-        if (open) {
-            robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_MAX);
+        if (robot.stateConfiguration.action(groupName, actionName).enabled) {
+            if (open) {
+                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_MAX);
+            } else {
+                robot.wobbleGrabServo.setPosition(0);
+            }
         } else {
-            robot.wobbleGrabServo.setPosition(0);
+            setHasFinished(true);
         }
     }
 

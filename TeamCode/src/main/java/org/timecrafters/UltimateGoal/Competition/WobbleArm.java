@@ -45,4 +45,8 @@ public class WobbleArm extends CyberarmState {
         setHasFinished(runTime() > waitTime);
     }
 
+    @Override
+    public void telemetry() {
+        engine.telemetry.addData("runTime", runTime());
+    }
 }

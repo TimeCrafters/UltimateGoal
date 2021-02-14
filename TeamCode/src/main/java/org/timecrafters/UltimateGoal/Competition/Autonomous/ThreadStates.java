@@ -6,7 +6,7 @@ import java.util.ArrayList;
 
 public class ThreadStates extends CyberarmState {
 
-    private ArrayList<CyberarmState> states = new ArrayList<>();
+    private ArrayList<CyberarmState> states = new ArrayList<CyberarmState>();
 
     public ThreadStates(ArrayList<CyberarmState> states) {
         this.states = states;
@@ -29,5 +29,16 @@ public class ThreadStates extends CyberarmState {
         }
         setHasFinished(finishedStates == states.size());
 
+    }
+
+    @Override
+    public void telemetry() {
+        engine.telemetry.addLine("Threaded States");
+        for (CyberarmState child: children) {
+            engine.telemetry.addLine(""+child.getClass());
+            if (child.getHasFinished()) {
+                engine.telemetry.addLine("finished");
+            }
+        }
     }
 }

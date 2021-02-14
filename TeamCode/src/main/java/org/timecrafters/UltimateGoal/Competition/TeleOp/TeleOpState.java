@@ -14,8 +14,15 @@ public class TeleOpState extends CyberarmState {
     private double leftJoystickMagnitude;
     private float rightJoystickDegrees;
     private double rightJoystickMagnitude;
+    private double rightJoystickMagnitudePrevious;
+
+    private float faceDirection = 0;
+
+    private double faceControlThreshold;
     private float cardinalSnapping;
     private float pairSnapping;
+
+
 
     private double[] powers = {0,0,0,0};
     private double drivePower = 1;
@@ -33,7 +40,6 @@ public class TeleOpState extends CyberarmState {
     private boolean wobbleGrabOpen = false;
 
 
-
     private boolean launchInput = false;
 
 
@@ -45,11 +51,13 @@ public class TeleOpState extends CyberarmState {
     public void init() {
         cardinalSnapping = robot.stateConfiguration.variable("tele","control", "cardinalSnapping").value();
         pairSnapping = robot.stateConfiguration.variable("tele","control", "pairSnapping").value();
+        faceControlThreshold = robot.stateConfiguration.variable("tele","control", "faceControlT").value();
     }
 
     @Override
     public void exec() {
         robot.updateLocation();
+        robot.record(""+robot.ticksToInches(robot.getLocationX())+", "+robot.ticksToInches(robot.getLocationY()));
 
         double leftJoystickX = engine.gamepad1.left_stick_x;
         double leftJoystickY = engine.gamepad1.left_stick_y;
@@ -60,9 +68,15 @@ public class TeleOpState extends CyberarmState {
         double rightJoystickX = engine.gamepad1.right_stick_x;
         double rightJoystickY = engine.gamepad1.right_stick_y;
 
-        rightJoystickDegrees = snapToCardinal((float) Math.toDegrees(Math.atan2(rightJoystickX, -rightJoystickY)),cardinalSnapping,0);
+        rightJoystickDegrees = (float) Math.toDegrees(Math.atan2(rightJoystickX, -rightJoystickY));
         rightJoystickMagnitude = Math.hypot(rightJoystickX, rightJoystickY);
 
+        //if the driver is letting go of the face joystick, the robot should maintain it's current face direction.
+        if (rightJoystickMagnitude > faceControlThreshold || rightJoystickMagnitude - rightJoystickMagnitudePrevious > 0) {
+            //if the joystick is close to one of the cardinal directions, it is set to exactly the cardinal direction
+            faceDirection = snapToCardinal(rightJoystickDegrees,cardinalSnapping,0);
+        }
+        rightJoystickMagnitudePrevious = rightJoystickMagnitude;
 
         boolean lb = engine.gamepad1.left_stick_button;
         if (lb && !lbPrev) {
@@ -103,20 +117,14 @@ public class TeleOpState extends CyberarmState {
 
             //Normal Driver Controls
 
-            if (rightJoystickMagnitude == 0) {
-                if (leftJoystickMagnitude !=0) {
-                    float direction = snapToCardinal(leftJoystickDegrees,cardinalSnapping,0);
-                    powers = robot.getMecanumPowers(direction, drivePower, direction);
-                }
+            if (leftJoystickMagnitude == 0) {
+                double[] facePowers =  robot.getFacePowers(faceDirection,  TURN_POWER);
+                powers = new double[]{facePowers[0], facePowers[1], facePowers[0], facePowers[1]};
             } else {
-                if (leftJoystickMagnitude == 0) {
-                    double[] facePowers =  robot.getFacePowers(rightJoystickDegrees, TURN_POWER * rightJoystickMagnitude);
-                    powers = new double[]{facePowers[0], facePowers[1], facePowers[0], facePowers[1]};
-                } else {
 
-                    powers = robot.getMecanumPowers(snapToCardinal(leftJoystickDegrees,pairSnapping,rightJoystickDegrees), drivePower, rightJoystickDegrees);
-                }
+                powers = robot.getMecanumPowers(snapToCardinal(leftJoystickDegrees,pairSnapping,faceDirection), drivePower, faceDirection);
             }
+
         }
 
         robot.setDrivePower(powers[0],powers[1],powers[2],powers[3]);
@@ -157,6 +165,10 @@ public class TeleOpState extends CyberarmState {
         bPrev = b;
 
 
+        if (engine.gamepad2.right_bumper && engine.gamepad2.left_bumper) {
+            robot.launchMotor.setPower(Robot.LAUNCH_POWER);
+        }
+
     }
 
     @Override
@@ -164,13 +176,18 @@ public class TeleOpState extends CyberarmState {
 
        engine.telemetry.addData("childrenHaveFinished", childrenHaveFinished());
        for (CyberarmState state : children) {
-           engine.telemetry.addLine(""+state.getClass());
+           if (!state.getHasFinished()) {
+               engine.telemetry.addLine("" + state.getClass());
+           }
        }
+
+       engine.telemetry.addData("Vision Z", robot.visionZ);
+
+       engine.telemetry.addData("belt stage", robot.ringBeltStage);
 
         engine.telemetry.addLine("Location");
         engine.telemetry.addData("Position ","("+round(robot.ticksToInches(robot.getLocationX()),0.1)+","+round(robot.ticksToInches(robot.getLocationY()),0.1)+")");
         engine.telemetry.addData("Rotation ", robot.getRotation());
-        engine.telemetry.addData("totalV", robot.totalV);
     }
 
     private float round(double number,double unit) {

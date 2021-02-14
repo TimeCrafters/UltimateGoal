@@ -62,7 +62,7 @@ public class Robot {
     //Steering Constants
     static final double FINE_CORRECTION = 0.055 ;
     static final double LARGE_CORRECTION = 0.025;
-    static final double MOMENTUM_CORRECTION = 1.045;
+    static final double MOMENTUM_CORRECTION = 1.05;
     static final double MOMENTUM_MAX_CORRECTION = 1.4;
     static final double MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(MOMENTUM_MAX_CORRECTION-1)/Math.log10(MOMENTUM_CORRECTION));
 
@@ -70,15 +70,20 @@ public class Robot {
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 2.3622;
     static final int COUNTS_PER_REVOLUTION = 8192;
     static final float mmPerInch = 25.4f;
+    static final double TICKS_PER_ROBOT_DEGREE_CLOCKWISE_FORWARD = 12.3;
+    static final double TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE_FORWARD = 18.8;
     static final double TICKS_PER_ROBOT_DEGREE_CLOCKWISE = 8.4;
     static final double TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE = 8.6;
 
     // Inches Forward of axis of rotation
-    static final float CAMERA_FORWARD_DISPLACEMENT  = 13f;
+    static final float CAMERA_FORWARD_DISPLACEMENT  = 8f;
     // Inches above Ground
-    static final float CAMERA_VERTICAL_DISPLACEMENT = 4.5f;
+    static final float CAMERA_VERTICAL_DISPLACEMENT = 9.5f;
     // Inches Left of axis of rotation
-    static final float CAMERA_LEFT_DISPLACEMENT     = 2f;
+    static final float CAMERA_LEFT_DISPLACEMENT = 4f;
+
+    static final double CAMERA_DISPLACEMENT_MAG = Math.hypot(CAMERA_FORWARD_DISPLACEMENT,CAMERA_LEFT_DISPLACEMENT);
+    static final float CAMERA_DISPLACEMENT_DIRECTION = (float) -Math.atan(CAMERA_LEFT_DISPLACEMENT/CAMERA_FORWARD_DISPLACEMENT);
 
     //Robot Localization
     public double locationX;
@@ -93,7 +98,7 @@ public class Robot {
 
     //Launcher
     public DcMotor launchMotor;
-    public static final double LAUNCH_POWER = 0.75;
+    public static final double LAUNCH_POWER = 0.7;
 
     private static final long LAUNCH_ACCEL_TIME = 500;
     public double launchPositionX;
@@ -126,13 +131,14 @@ public class Robot {
     public static final int WOBBLE_ARM_DOWN = -710;
     public static final double WOBBLE_SERVO_MAX = 0.3;
     public RevColorSensorV3 wobbleColorSensor;
+    public double wobbleScoreX;
+    public double wobbleScoreY;
 
     //vuforia navigation
     private WebcamName webcam;
     private VuforiaLocalizer vuforia;
     public Servo webCamServo;
-    public static final double CAM_SERVO_UP = 0.2;
-    public static final double CAM_SERVO_Down = 0.2;
+    public static final double CAM_SERVO_DOWN = 0.15;
 
     public boolean trackableVisible;
     private VuforiaTrackables targetsUltimateGoal;
@@ -151,11 +157,15 @@ public class Robot {
     public double totalV;
     public double visionX;
     public double visionY;
+    public double visionZ;
     public float rawAngle;
 //    private String TestingRecord = "FrontLeft,FrontRight,BackLeft,BackRight";
-    private String TestingRecord = "TicksPerDegree";
+    private String TestingRecord = "x,y";
 
-    public double traveledLeft;
+    public double forwardVector;
+    public double sidewaysVector;
+
+    public double traveledForward = 0;
     public double traveledRight;
 
     public void initHardware() {
@@ -191,6 +201,8 @@ public class Robot {
         wobbleArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
         wobbleGrabServo = hardwareMap.servo.get("wobbleGrab");
+
+        wobbleColorSensor = hardwareMap.get(RevColorSensorV3.class, "color");
 
         //init ring belt
         collectionMotor = hardwareMap.dcMotor.get("collect");
@@ -233,8 +245,8 @@ public class Robot {
         webCamServo.setDirection(Servo.Direction.REVERSE );
 
         rotation = stateConfiguration.variable("system", "startPos", "direction").value();
-        locationX = stateConfiguration.variable("system", "startPos", "x").value();
-        locationY = stateConfiguration.variable("system", "startPos", "y").value();
+        locationX = inchesToTicks((double) stateConfiguration.variable("system", "startPos", "x").value());
+        locationY = inchesToTicks((double) stateConfiguration.variable("system", "startPos", "y").value());
 
         minCheckVelocity =stateConfiguration.variable("system", "tensorFlow", "minCheckV").value();
         minCheckDurationMs =stateConfiguration.variable("system", "tensorFlow", "minCheckMS").value();
@@ -263,10 +275,11 @@ public class Robot {
             }
         }
         //
-        launchPositionX = stateConfiguration.variable("system", "launchPos","x").value();
-        launchPositionX = stateConfiguration.variable("system", "launchPos","y").value();
+        launchPositionX = inchesToTicks((double) stateConfiguration.variable("system", "launchPos","x").value());
+        launchPositionY = inchesToTicks((double) stateConfiguration.variable("system", "launchPos","y").value());
         launchRotation = stateConfiguration.variable("system", "launchPos","rot").value();
 
+        initTensorFlow();
     }
 
     private void initVuforia() {
@@ -338,7 +351,7 @@ public class Robot {
         double rotationChange = getRelativeAngle(rotationPrevious, imuAngle);
 
         int encoderLeftCurrent = -encoderLeft.getCurrentPosition();
-        int encoderRightCurrent = -encoderRight.getCurrentPosition();
+        int encoderRightCurrent = encoderRight.getCurrentPosition();
         int encoderBackCurrent = encoderBack.getCurrentPosition();
 
         double encoderLeftChange = encoderLeftCurrent - encoderLeftPrevious;
@@ -352,22 +365,27 @@ public class Robot {
 
         //The forward Vector has the luxury of having an odometer on both sides of the robot.
         //This allows us to eliminate the unwanted influence of turning the robot by averaging
-        //the two. This meathod doesn't require any prior calibration.
-        double forwardVector = (encoderLeftChange+encoderRightChange)/2;
+        //the two.
 
         //Since there isn't a second wheel to remove the influence of robot rotation, we have to
         //instead do this by approximating the number of ticks that were removed due to rotation
         //based on a separate calibration program.
 
-        double ticksPerDegree;
+        double ticksPerDegreeForward;
+        double ticksPerDegreeSideways;
 
         if (rotationChange < 0) {
-            ticksPerDegree = TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE;
+            ticksPerDegreeSideways = TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE;
+            ticksPerDegreeForward = TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE_FORWARD;
         } else {
-            ticksPerDegree = TICKS_PER_ROBOT_DEGREE_CLOCKWISE;
+            ticksPerDegreeSideways = TICKS_PER_ROBOT_DEGREE_CLOCKWISE;
+            ticksPerDegreeForward = TICKS_PER_ROBOT_DEGREE_CLOCKWISE_FORWARD;
         }
 
-        double sidewaysVector = encoderBackChange + (rotationChange* ticksPerDegree);
+        forwardVector = ((encoderLeftChange+encoderRightChange)/2) -  (rotationChange* ticksPerDegreeForward);
+
+        traveledForward += forwardVector;
+        sidewaysVector = encoderBackChange + (rotationChange * ticksPerDegreeSideways);
 
         double magnitude = Math.sqrt((forwardVector*forwardVector) + (sidewaysVector*sidewaysVector));
         double direction = Math.toRadians(rotation + (rotationChange/2)) + Math.atan2(sidewaysVector,forwardVector);
@@ -420,13 +438,6 @@ public class Robot {
                     lastConfirmendLocation = robotLocation;
                 }
 
-
-                VectorF translation = lastConfirmendLocation.getTranslation();
-                locationX = -inchesToTicks(translation.get(1) / mmPerInch);
-                locationY = inchesToTicks( translation.get(0) / mmPerInch);
-
-
-
                 //For our tournament, it makes sense to make zero degrees towards the goal.
                 //Orientation is inverted to have clockwise be positive.
                 Orientation rotation = Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
@@ -435,6 +446,16 @@ public class Robot {
                 if (this.rotation > 180) {
                     this.rotation -= -180;
                 }
+
+                VectorF translation = lastConfirmendLocation.getTranslation();
+                double camX = -translation.get(1) / mmPerInch;
+                double camY = translation.get(0) / mmPerInch;
+
+                double displaceX = CAMERA_DISPLACEMENT_MAG * Math.sin(this.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+                double displaceY = CAMERA_DISPLACEMENT_MAG * Math.cos(this.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+
+                locationX = inchesToTicks(camX - displaceX);
+                locationY = inchesToTicks(camY - displaceY);
 
                 break;
             }

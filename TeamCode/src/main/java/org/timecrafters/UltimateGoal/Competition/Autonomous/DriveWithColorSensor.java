@@ -27,6 +27,11 @@ public class DriveWithColorSensor extends CyberarmState {
     }
 
     @Override
+    public void start() {
+        setHasFinished(!robot.stateConfiguration.action(groupName,actionName).enabled);
+    }
+
+    @Override
     public void exec() {
         double sensorValue = robot.wobbleColorSensor.getDistance(DistanceUnit.MM);
         if (sensorValue < minimum) {

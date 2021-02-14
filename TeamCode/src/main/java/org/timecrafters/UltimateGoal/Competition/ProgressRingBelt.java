@@ -24,7 +24,10 @@ public class ProgressRingBelt extends CyberarmState {
             robot.ringBeltOn();
             robot.ringBeltStage += 1;
             prepLaunch = !robot.initLauncher;
+        } else if (robot.ringBeltStage > 2) {
+            setHasFinished(true);
         }
+
 
     }
 

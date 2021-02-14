@@ -27,6 +27,7 @@ public class TeleOpEngine extends CyberarmEngine {
     @Override
     public void stop() {
         robot.deactivateVuforia();
+        robot.saveRecording();
         super.stop();
     }
 }
