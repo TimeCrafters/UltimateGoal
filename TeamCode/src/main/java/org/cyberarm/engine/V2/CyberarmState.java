@@ -23,6 +23,13 @@ public abstract class CyberarmState implements Runnable {
   }
 
   /**
+   * Called just before start to ensure state is in correct state
+   */
+  protected void prestart() {
+    isRunning = true;
+  }
+
+  /**
    * Called when state has begin to run
    */
   public void start() {
@@ -39,7 +46,6 @@ public abstract class CyberarmState implements Runnable {
    */
   @Override
   public void run() {
-    isRunning = true;
     while (!hasFinished) {
       exec();
     }

@@ -170,6 +170,7 @@ public abstract class CyberarmEngine extends OpMode {
     new Thread(new Runnable() {
       @Override
       public void run() {
+        finalState.prestart();
         finalState.start();
         finalState.startTime = System.currentTimeMillis();
         finalState.run();
@@ -202,6 +203,8 @@ public abstract class CyberarmEngine extends OpMode {
    */
   public CyberarmState insertState(CyberarmState query, CyberarmState state) {
     int index = cyberarmStates.indexOf(query) + query.insertOffset;
+    Log.i(TAG, "Adding cyberarmState "+ state.getClass());
+
     cyberarmStates.add(index, state);
     query.insertOffset++;
 
