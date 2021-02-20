@@ -45,6 +45,8 @@ public class DriveToCoordinates extends CyberarmState {
     @Override
     public void init() {
         if (!groupName.equals("manual")) {
+            xTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "xPos").value());
+            yTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "yPos").value());
             power = robot.stateConfiguration.variable(groupName, actionName, "power").value();
             tolerancePos = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "tolPos").value());
             brakeTime = robot.stateConfiguration.variable(groupName, actionName, "brakeMS").value();
@@ -62,12 +64,15 @@ public class DriveToCoordinates extends CyberarmState {
         if (!groupName.equals("manual")) {
             setHasFinished(!robot.stateConfiguration.action(groupName, actionName).enabled);
 
-            if (!scoringArea) {
-                xTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "xPos").value());
-                yTarget = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "yPos").value());
-            } else {
-                xTarget = robot.wobbleScoreX;
-                yTarget = robot.wobbleScoreY;
+            //used to navigate towards the randomly generated scoreing area. the original target
+            //becomes an offset of the scoring area position.
+            if (scoringArea) {
+                xTarget += robot.wobbleScoreX;
+                yTarget += robot.wobbleScoreY;
+            }
+
+            if (faceAngle == 360) {
+                faceAngle = robot.getRelativeAngle(180, robot.getAngleToPosition(xTarget,yTarget));
             }
         }
 

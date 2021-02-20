@@ -12,7 +12,7 @@ public class WobbleArm extends CyberarmState {
 
     public WobbleArm(Robot robot, String groupName, String actionName, boolean armUp) {
         this.robot = robot;
-        this.groupName = groupName;
+        this.groupName  = groupName;
         this.actionName = actionName;
         this.armUp = armUp;
     }

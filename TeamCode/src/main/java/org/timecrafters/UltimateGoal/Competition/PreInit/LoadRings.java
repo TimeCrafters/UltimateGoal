@@ -26,5 +26,10 @@ public class LoadRings extends CyberarmState {
             addParallelState(ringBeltState);
 
         }
+
+        if (robot.ringBeltStage > 2) {
+            robot.launchMotor.setPower(0);
+            setHasFinished(true);
+        }
     }
 }

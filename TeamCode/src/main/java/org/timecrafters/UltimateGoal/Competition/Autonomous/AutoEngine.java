@@ -26,16 +26,20 @@ public class AutoEngine extends CyberarmEngine {
     private double scoreAPower;
     private long scoreABrakeTime;
 
-    float scoreBFaceAngle;
-    double scoreBTolerance;
-    double scoreBPower;
-    long scoreBBrakeTime;
+    double parkY;
+    float parkFaceAngle;
+    double parkTolerance;
+    double parkPower;
+    long parkBrakeTime;
 
     @Override
     public void init() {
         robot = new Robot(hardwareMap);
         robot.initHardware();
         robot.webCamServo.setPosition(Robot.CAM_SERVO_DOWN);
+        robot.wobbleGrabServo.setPosition(0.1  * Robot.WOBBLE_SERVO_MAX);
+        // since we've preloaded three rings, the ring belt stage is set to account for this;
+        robot.ringBeltStage = 3;
 
         launchTolerance = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto","04_0","tolPos").value());
         launchPower = robot.stateConfiguration.variable("auto","04_0","power").value();
@@ -46,10 +50,11 @@ public class AutoEngine extends CyberarmEngine {
 //        scoreAPower = robot.stateConfiguration.variable("auto","05_0","power").value();
 //        scoreABrakeTime = robot.stateConfiguration.variable("auto","05_0","brakeMS").value();
 //
-//        scoreBFaceAngle = robot.stateConfiguration.variable("auto","10_0","face").value();
-//        scoreBTolerance = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto","10_0","tolPos").value());
-//        scoreBPower = robot.stateConfiguration.variable("auto","10_0","power").value();
-//        scoreBBrakeTime = robot.stateConfiguration.variable("auto","10_0","brakeMS").value();
+        parkY = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto","13_0","yPos").value());
+        parkFaceAngle = robot.stateConfiguration.variable("auto","13_0","face").value();
+        parkTolerance = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto","13_0","tolPos").value());
+        parkPower = robot.stateConfiguration.variable("auto","13_0","power").value();
+        parkBrakeTime = robot.stateConfiguration.variable("auto","13_0","brakeMS").value();
 
         super.init();
     }
@@ -72,15 +77,15 @@ public class AutoEngine extends CyberarmEngine {
         //drive to launch position
         addState(new DriveToCoordinates(robot, robot.launchPositionX,robot.launchPositionY,robot.launchRotation,launchTolerance,launchPower,launchBrakeTime));
 
-        //
+        //aligns to goal
         addState(new Face(robot, "auto", "04_1"));
 
         //launch rings
-        addState(new Launch(robot, "auto", "04_2"));
+        CyberarmState launchState = new Launch(robot, "auto", "04_2");
 
         //drive to scoring area
-        addState(new DriveToCoordinates(robot, "auto", "05_0", true));
-//        addState(new DriveToCoordinates(robot, tensorFlowCheck.wobblePosX,tensorFlowCheck.wobblePosY,scoreAFaceAngle,scoreATolerance,scoreAPower,scoreABrakeTime));
+        CyberarmState driveState = new DriveToCoordinates(robot, "auto", "05_0", true);
+        addState(new LaunchDriveControl(robot,launchState,driveState));
 
         //turn arm towards scoreing area.
         ArrayList<CyberarmState> threadStates = new ArrayList<>();
@@ -95,7 +100,7 @@ public class AutoEngine extends CyberarmEngine {
         addState(new DriveToCoordinates(robot, "auto","06_1"));
 
         addState(new DriveToCoordinates(robot, "auto", "07_0"));
-        addState(new DriveWithColorSensor(robot, "auto", "08_0"));
+        addState(new FindWobbleGoal(robot, "auto", "08_0"));
 
         //close grabber
         addState(new WobbleGrab(robot, "auto", "09_0", false));
@@ -109,10 +114,11 @@ public class AutoEngine extends CyberarmEngine {
         addState(new WobbleGrab(robot, "auto", "12_0", true));
 
         //drive to park
-        ArrayList<CyberarmState> threadStatesB = new ArrayList<>();
-        threadStatesB.add(new WobbleGrab(robot, "auto", "12_1", false));
-        threadStatesB.add(new WobbleArm(robot, "auto", "12_2",true));
-        threadStatesB.add(new DriveToCoordinates(robot, "auto", "13_0"));
-        addState(new ThreadStates(threadStatesB));
+        addState(new DriveToCoordinates(robot, robot.getLocationX(), parkY, parkFaceAngle, parkTolerance, parkPower,parkBrakeTime));
+//        ArrayList<CyberarmState> threadStatesB = new ArrayList<>();
+//        threadStatesB.add(new WobbleGrab(robot, "auto", "12_1", false));
+//        threadStatesB.add(new WobbleArm(robot, "auto", "12_2",true));
+//        threadStatesB.add(new DriveToCoordinates(robot, robot.getLocationX(), parkY, parkFaceAngle, parkTolerance, parkPower,parkBrakeTime));
+//        addState(new ThreadStates(threadStatesB));
     }
 }

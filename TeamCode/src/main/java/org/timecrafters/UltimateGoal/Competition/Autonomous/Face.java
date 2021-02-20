@@ -58,6 +58,12 @@ public class Face extends CyberarmState {
                 double y = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "faceY").value());
                 faceAngle = robot.getAngleToPosition(x, y);
             }
+
+            if (faceAngle == 360) {
+                double x = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "faceX").value());
+                double y = robot.inchesToTicks((double) robot.stateConfiguration.variable(groupName, actionName, "faceY").value());
+                faceAngle = robot.getRelativeAngle(180,robot.getAngleToPosition(x, y));
+            }
         }
     }
 

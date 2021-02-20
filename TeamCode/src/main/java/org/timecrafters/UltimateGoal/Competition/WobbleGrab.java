@@ -9,6 +9,7 @@ public class WobbleGrab extends CyberarmState {
     private String actionName;
     private boolean open;
     private long waitTime = -1;
+    private boolean enabled;
 
     public WobbleGrab(Robot robot, String groupName, String actionName, boolean open) {
         this.robot = robot;
@@ -26,13 +27,14 @@ public class WobbleGrab extends CyberarmState {
     @Override
     public void init() {
         if (waitTime == -1) {
+            enabled = robot.stateConfiguration.action(groupName, actionName).enabled;
             waitTime = robot.stateConfiguration.variable(groupName, actionName, "wait").value();
         }
     }
 
     @Override
     public void start() {
-        if (robot.stateConfiguration.action(groupName, actionName).enabled) {
+        if (enabled) {
             if (open) {
                 robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_MAX);
             } else {

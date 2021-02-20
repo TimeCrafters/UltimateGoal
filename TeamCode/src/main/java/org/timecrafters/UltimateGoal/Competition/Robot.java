@@ -98,7 +98,7 @@ public class Robot {
 
     //Launcher
     public DcMotor launchMotor;
-    public static final double LAUNCH_POWER = 0.7;
+    public static final double LAUNCH_POWER = 0.715;
 
     private static final long LAUNCH_ACCEL_TIME = 500;
     public double launchPositionX;
@@ -212,7 +212,7 @@ public class Robot {
         ringBeltMotor = hardwareMap.dcMotor.get("belt");
         ringBeltMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         ringBeltMotor .setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-
+ 
 
         //init IMU
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
@@ -364,8 +364,8 @@ public class Robot {
         rotationPrevious = imuAngle;
 
         //The forward Vector has the luxury of having an odometer on both sides of the robot.
-        //This allows us to eliminate the unwanted influence of turning the robot by averaging
-        //the two.
+        //This allows us to reduce the unwanted influence of turning the robot by averaging
+        //the two. unfortunatly we the current positioning of the odometers
 
         //Since there isn't a second wheel to remove the influence of robot rotation, we have to
         //instead do this by approximating the number of ticks that were removed due to rotation
@@ -474,6 +474,10 @@ public class Robot {
         return locationY;
     }
 
+    public void resetRotation(float rotation) {
+        this.rotation = rotation;
+    }
+
     //Manually set the position of the robot on the field.
     public void setCurrentPosition(float rotation, double x, double y) {
         this.rotation = rotation;
@@ -541,26 +545,19 @@ public class Robot {
         double p = y + x;
         double q = y - x;
 
+
+
         //calculating correction needed to steer the robot towards the degreesDirectionFace
-        float relativeRotation =  getRelativeAngle(degreesDirectionFace, rotation);
-        double turnCorrection = Math.pow(LARGE_CORRECTION * relativeRotation, 3) + FINE_CORRECTION * relativeRotation;
+        float relativeRotation =
+                getRelativeAngle(degreesDirectionFace, rotation);
+        double turnCorrection =
+                Math.pow(LARGE_CORRECTION * relativeRotation, 3) +
+                        FINE_CORRECTION * relativeRotation;
 
         double powerForwardRight = scalar * (q + turnCorrection);
         double powerForwardLeft = scalar * (p - turnCorrection);
         double powerBackRight = scalar * (p + turnCorrection);
         double powerBackLeft = scalar * (q - turnCorrection);
-
-//        //the turnCorrection often results in powers with magnitudes significantly larger than the
-//        //scalar. The scaleRatio mitigates this without altering the quality of the motion by making
-//        //it so that the average of the four magnitudes is equal to the scalar magnitude.
-//        double powerSum = Math.abs(powerForwardRight) + Math.abs(powerForwardLeft) +
-//                Math.abs(powerBackRight) + Math.abs(powerBackLeft);
-//        double scaleRatio = (4 * Math.abs(scalar))/powerSum;
-//
-//        powerForwardRight *= scaleRatio;
-//        powerForwardLeft *= scaleRatio;
-//        powerBackRight *= scaleRatio;
-//        powerBackLeft *= scaleRatio;
 
 
         if (relativeRotation != 0) {
@@ -587,15 +584,6 @@ public class Robot {
             powerBackRight = powerBackRight/extreme;
             powerBackLeft = powerBackLeft/extreme;
         }
-
-//        double powerControlThreshold = 0.6 * ;
-//
-//        if (Math.min(extreme, 1) > powerControlThreshold) {
-//            powerForwardLeft *= powerControlThreshold;
-//            powerForwardRight *= powerControlThreshold;
-//            powerBackLeft *= powerControlThreshold;
-//            powerBackRight *= powerControlThreshold;
-//        }
 
         double[] powers = {powerForwardLeft, powerForwardRight, powerBackLeft, powerBackRight};
 
