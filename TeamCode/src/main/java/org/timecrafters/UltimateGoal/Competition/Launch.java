@@ -11,6 +11,7 @@ public class Launch extends CyberarmState {
     boolean detectedPass;
     private boolean reduceConditionPrev;
     private double reducePos;
+    private long stuckStartTime;
 
     public Launch(Robot robot) {
         this.robot = robot;
@@ -39,7 +40,18 @@ public class Launch extends CyberarmState {
     public void exec() {
         //detect when limit switch is initially triggered
         boolean detectingPass = robot.limitSwitch.isPressed();
-        int beltPos = robot.getBeltPos();
+        int beltPos = robot.ringBeltMotor.getCurrentPosition();
+
+        if (robot.beltIsStuck() && childrenHaveFinished()) {
+            long currentTime = System.currentTimeMillis();
+            if (stuckStartTime == 0) {
+                stuckStartTime = currentTime;
+            } else if (currentTime - stuckStartTime >= robot.beltMaxStopTime) {
+                addParallelState(new UnstickRingBelt(robot));
+            }
+        } else {
+            stuckStartTime = 0;
+        }
 
         if (detectingPass && !detectedPass) {
             //finish once the ring belt has cycled all the way through and then returned to
@@ -61,7 +73,7 @@ public class Launch extends CyberarmState {
         }
         detectedPass = detectingPass;
 
-        boolean reduceCondition = (hasCycled && beltPos > reducePos && beltPos < reducePos + Robot.RING_BELT_GAP);
+        boolean reduceCondition = (hasCycled && beltPos > reducePos);
         if (reduceCondition && !reduceConditionPrev){
             robot.ringBeltOn();
             //the ring belt stage lets other states know that the robot has finished launching all three rings

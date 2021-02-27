@@ -96,6 +96,7 @@ public class Robot {
     private float rotationPrevious = 0;
     public float angularVelocity;
 
+
     //Launcher
     public DcMotor launchMotor;
     public static final double LAUNCH_POWER = 0.715;
@@ -122,8 +123,11 @@ public class Robot {
     public int ringBeltStage;
     public static final int RING_BELT_LOOP_TICKS = 2544;
     public static final int RING_BELT_GAP = 670;
-
     public static final double RING_BELT_POWER = 0.2;
+    private int ringBeltPrev;
+    public long beltMaxStopTime;
+    public int beltReverseTicks;
+    public int beltMaxStopTicks;
 
     //Wobble Goal Arm
     public DcMotor wobbleArmMotor;
@@ -212,7 +216,9 @@ public class Robot {
         ringBeltMotor = hardwareMap.dcMotor.get("belt");
         ringBeltMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         ringBeltMotor .setMode(DcMotor.RunMode.RUN_USING_ENCODER);
- 
+        beltMaxStopTime = stateConfiguration.variable("system","belt", "maxStopTime").value();
+        beltMaxStopTicks = stateConfiguration.variable("system","belt", "maxStopTicks").value();
+        beltReverseTicks = stateConfiguration.variable("system","belt", "reverseTicks").value();
 
         //init IMU
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
@@ -615,8 +621,11 @@ public class Robot {
         ringBeltMotor.setPower(RING_BELT_POWER);
     }
 
-    public int getBeltPos(){
-        return loopPos(ringBeltMotor.getCurrentPosition());
+    public boolean beltIsStuck() {
+        int ringBeltPos = ringBeltMotor.getCurrentPosition();
+        boolean notMoved = (ringBeltPos - ringBeltPrev <= beltMaxStopTicks);
+        ringBeltPrev = ringBeltPos;
+        return notMoved;
     }
 
     public int loopPos(int pos) {

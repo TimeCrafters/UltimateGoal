@@ -7,6 +7,7 @@ public class ProgressRingBelt extends CyberarmState {
     private Robot robot;
     private int targetPos;
     private boolean prepLaunch;
+    private long stuckStartTime;
 
     public ProgressRingBelt(Robot robot) {
         this.robot = robot;
@@ -14,7 +15,7 @@ public class ProgressRingBelt extends CyberarmState {
 
     @Override
     public void start() {
-        int currentPos = robot.getBeltPos();
+        int currentPos = robot.ringBeltMotor.getCurrentPosition();
         if (robot.ringBeltStage < 2) {
             targetPos = robot.loopPos(currentPos + Robot.RING_BELT_GAP);
             robot.ringBeltOn();
@@ -33,8 +34,19 @@ public class ProgressRingBelt extends CyberarmState {
 
     @Override
     public void exec() {
-        int currentPos = robot.getBeltPos();
-        if (currentPos >= targetPos && currentPos < targetPos + Robot.RING_BELT_GAP) {
+        if (robot.beltIsStuck() && childrenHaveFinished()) {
+            long currentTime = System.currentTimeMillis();
+            if (stuckStartTime == 0) {
+                stuckStartTime = currentTime;
+            } else if (currentTime - stuckStartTime >= robot.beltMaxStopTime) {
+                addParallelState(new UnstickRingBelt(robot));
+            }
+        } else {
+            stuckStartTime = 0;
+        }
+
+        int currentPos = robot.ringBeltMotor.getCurrentPosition();
+        if (currentPos >= targetPos) {
             robot.ringBeltMotor.setPower(0);
 
             if(prepLaunch) {
