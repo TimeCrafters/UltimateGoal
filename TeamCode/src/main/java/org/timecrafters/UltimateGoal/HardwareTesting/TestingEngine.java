@@ -10,21 +10,10 @@ import org.timecrafters.UltimateGoal.Competition.Robot;
 public class TestingEngine extends CyberarmEngine {
 
     private Robot robot;
-    @Override
-    public void init() {
-        robot = new Robot(hardwareMap);
-        robot.initHardware();
-        super.init();
-    }
 
     @Override
     public void setup() {
-        addState(new FindWobbleGoal(robot, "auto", "08_0"));
+        addState(new LEDTest());
     }
 
-//    @Override
-//    public void stop() {
-//        robot.saveRecording();
-//        super.stop();
-//    }
 }

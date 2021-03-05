@@ -1,5 +1,6 @@
 package org.timecrafters.UltimateGoal.Competition.TeleOp;
 
+import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.cyberarm.engine.V2.CyberarmState;
@@ -32,6 +33,11 @@ public class Player2 extends CyberarmState {
     public void init() {
         robot.wobbleArmMotor.setTargetPosition(0);
         robot.wobbleArmMotor.setPower(0.5);
+    }
+
+    @Override
+    public void start() {
+        robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
     }
 
     @Override

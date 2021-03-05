@@ -5,6 +5,7 @@ import android.util.Log;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
+import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -48,6 +49,8 @@ public class Robot {
 
     public TimeCraftersConfiguration stateConfiguration = new TimeCraftersConfiguration();
     public BNO055IMU imu;
+
+    public RevBlinkinLedDriver ledDriver;
 
     //drive system
     public DcMotor driveFrontLeft;
@@ -286,6 +289,8 @@ public class Robot {
         launchRotation = stateConfiguration.variable("system", "launchPos","rot").value();
 
         initTensorFlow();
+
+        ledDriver = hardwareMap.get(RevBlinkinLedDriver.class, "leds");
     }
 
     private void initVuforia() {
@@ -626,11 +631,6 @@ public class Robot {
         boolean notMoved = (ringBeltPos - ringBeltPrev <= beltMaxStopTicks);
         ringBeltPrev = ringBeltPos;
         return notMoved;
-    }
-
-    public int loopPos(int pos) {
-        pos %= RING_BELT_LOOP_TICKS;
-        return pos;
     }
 
     public void record(String record) {

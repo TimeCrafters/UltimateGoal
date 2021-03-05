@@ -1,5 +1,7 @@
 package org.timecrafters.UltimateGoal.Competition;
 
+import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
+
 import org.cyberarm.engine.V2.CyberarmState;
 
 public class Launch extends CyberarmState {
@@ -28,12 +30,15 @@ public class Launch extends CyberarmState {
         try {
             if (robot.stateConfiguration.action(groupName, actionName).enabled) {
                 robot.ringBeltMotor.setPower(0.5);
+                robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_BLUE);
             } else {
                 setHasFinished(true);
             }
         } catch (NullPointerException e){
             robot.ringBeltMotor.setPower(0.5);
+            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_BLUE);
         }
+
     }
 
     @Override
@@ -66,9 +71,10 @@ public class Launch extends CyberarmState {
                 }
 
                 setHasFinished(true);
+                robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
             } else {
                 hasCycled = true;
-                reducePos = robot.loopPos((int) (beltPos + (1.5 * Robot.RING_BELT_GAP)));
+                reducePos = (int) (beltPos + (1.5 * Robot.RING_BELT_GAP));
             }
         }
         detectedPass = detectingPass;
@@ -76,6 +82,7 @@ public class Launch extends CyberarmState {
         boolean reduceCondition = (hasCycled && beltPos > reducePos);
         if (reduceCondition && !reduceConditionPrev){
             robot.ringBeltOn();
+
             //the ring belt stage lets other states know that the robot has finished launching all three rings
             //and is now returning to loading position.
 
