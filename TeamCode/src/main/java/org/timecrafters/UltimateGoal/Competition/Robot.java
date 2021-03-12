@@ -63,11 +63,16 @@ public class Robot {
     public DcMotor encoderBack;
 
     //Steering Constants
-    static final double FINE_CORRECTION = 0.055 ;
-    static final double LARGE_CORRECTION = 0.025;
+    static final double CUBIC_CORRECTION = 0.025;
+    static final double LINEAR_CORRECTION = 0.055;
+    static final double FACE_MIN_CORRECTION = 0.2;
+    static final double FACE_LINEAR_CORRECTION = 0.025;
     static final double MOMENTUM_CORRECTION = 1.05;
     static final double MOMENTUM_MAX_CORRECTION = 1.4;
     static final double MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(MOMENTUM_MAX_CORRECTION-1)/Math.log10(MOMENTUM_CORRECTION));
+    static final double FACE_MOMENTUM_MAX_CORRECTION = 1.1;
+    static final double FACE_MOMENTUM_CORRECTION = 1.06;
+    static final double FACE_MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(FACE_MOMENTUM_MAX_CORRECTION-1)/Math.log10(FACE_MOMENTUM_CORRECTION));
 
     //Conversion Constants
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 2.3622;
@@ -89,9 +94,9 @@ public class Robot {
     static final float CAMERA_DISPLACEMENT_DIRECTION = (float) -Math.atan(CAMERA_LEFT_DISPLACEMENT/CAMERA_FORWARD_DISPLACEMENT);
 
     //Robot Localization
-    public double locationX;
-    public double locationY;
-    private float rotation;
+    private static double locationX;
+    private static double locationY;
+    private static float rotation;
 
     private int encoderLeftPrevious = 0;
     private int encoderBackPrevious = 0;
@@ -108,6 +113,7 @@ public class Robot {
     public double launchPositionX;
     public double launchPositionY;
     public float launchRotation;
+    public int reduceLaunchPos;
     public static final double LAUNCH_TOLERANCE_POS = 0.5 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
     public static final double LAUNCH_TOLERANCE_FACE = 0.5;
 
@@ -125,7 +131,7 @@ public class Robot {
     public RevTouchSensor limitSwitch;
     public int ringBeltStage;
     public static final int RING_BELT_LOOP_TICKS = 2544;
-    public static final int RING_BELT_GAP = 670;
+    public static final int RING_BELT_GAP = 700;
     public static final double RING_BELT_POWER = 0.2;
     private int ringBeltPrev;
     public long beltMaxStopTime;
@@ -253,10 +259,6 @@ public class Robot {
         webCamServo = hardwareMap.servo.get("look");
         webCamServo.setDirection(Servo.Direction.REVERSE );
 
-        rotation = stateConfiguration.variable("system", "startPos", "direction").value();
-        locationX = inchesToTicks((double) stateConfiguration.variable("system", "startPos", "x").value());
-        locationY = inchesToTicks((double) stateConfiguration.variable("system", "startPos", "y").value());
-
         minCheckVelocity =stateConfiguration.variable("system", "tensorFlow", "minCheckV").value();
         minCheckDurationMs =stateConfiguration.variable("system", "tensorFlow", "minCheckMS").value();
 
@@ -274,6 +276,7 @@ public class Robot {
         launchMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         initLauncher = stateConfiguration.action("system","initLauncher").enabled;
+        reduceLaunchPos = stateConfiguration.variable("system", "launchPos", "reducePower").value();
 
         if (initLauncher) {
             double launcherPower = 0;
@@ -399,7 +402,7 @@ public class Robot {
         sidewaysVector = encoderBackChange + (rotationChange * ticksPerDegreeSideways);
 
         double magnitude = Math.sqrt((forwardVector*forwardVector) + (sidewaysVector*sidewaysVector));
-        double direction = Math.toRadians(rotation + (rotationChange/2)) + Math.atan2(sidewaysVector,forwardVector);
+        double direction = Math.toRadians(Robot.rotation + (rotationChange/2)) + Math.atan2(sidewaysVector,forwardVector);
 
         double xChange = magnitude * (Math.sin(direction));
         double yChange = magnitude * (Math.cos(direction));
@@ -407,31 +410,31 @@ public class Robot {
         locationX += xChange;
         locationY += yChange;
 
-        rotation += rotationChange;
+        Robot.rotation += rotationChange;
 
 
-        totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) + Math.abs(encoderBackChange);
+//        totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) + Math.abs(encoderBackChange);
+
+//
+//        if (totalV < minCheckVelocity) {
+//            long timeCurrent = System.currentTimeMillis();
+//
+//            if (timeStartZeroVelocity == 0) {
+//                timeStartZeroVelocity = timeCurrent;
+//            } else if (timeCurrent - timeStartZeroVelocity >= minCheckDurationMs) {
+//                syncWithVuforia();
+//            }
+//
+//        } else {
+//            timeStartZeroVelocity = 0;
+//        }
 
 
-        if (totalV < minCheckVelocity) {
-            long timeCurrent = System.currentTimeMillis();
-
-            if (timeStartZeroVelocity == 0) {
-                timeStartZeroVelocity = timeCurrent;
-            } else if (timeCurrent - timeStartZeroVelocity >= minCheckDurationMs) {
-                syncWithVuforia();
-            }
-
-        } else {
-            timeStartZeroVelocity = 0;
+        if (Robot.rotation > 180) {
+            Robot.rotation -= 360;
         }
-
-
-        if (rotation > 180) {
-            rotation -= 360;
-        }
-        if (rotation < -180) {
-            rotation += 360;
+        if (Robot.rotation < -180) {
+            Robot.rotation += 360;
         }
 
     }
@@ -452,18 +455,18 @@ public class Robot {
                 //For our tournament, it makes sense to make zero degrees towards the goal.
                 //Orientation is inverted to have clockwise be positive.
                 Orientation rotation = Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
-                this.rotation = 90-rotation.thirdAngle;
+                Robot.rotation = 90-rotation.thirdAngle;
 
-                if (this.rotation > 180) {
-                    this.rotation -= -180;
+                if (Robot.rotation > 180) {
+                    Robot.rotation -= -180;
                 }
 
                 VectorF translation = lastConfirmendLocation.getTranslation();
                 double camX = -translation.get(1) / mmPerInch;
                 double camY = translation.get(0) / mmPerInch;
 
-                double displaceX = CAMERA_DISPLACEMENT_MAG * Math.sin(this.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
-                double displaceY = CAMERA_DISPLACEMENT_MAG * Math.cos(this.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+                double displaceX = CAMERA_DISPLACEMENT_MAG * Math.sin(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+                double displaceY = CAMERA_DISPLACEMENT_MAG * Math.cos(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
 
                 locationX = inchesToTicks(camX - displaceX);
                 locationY = inchesToTicks(camY - displaceY);
@@ -474,26 +477,28 @@ public class Robot {
     }
 
     public float getRotation() {
-        return rotation;
+        return Robot.rotation;
     }
 
     public double getLocationX() {
-        return locationX;
+        return Robot.locationX;
     }
 
     public double getLocationY() {
-        return locationY;
+        return Robot.locationY;
     }
 
-    public void resetRotation(float rotation) {
-        this.rotation = rotation;
+    public void setLocalization(float rotation, double x, double y) {
+        Robot.rotation = rotation;
+        Robot.locationX = x;
+        Robot.locationY = y;
     }
 
     //Manually set the position of the robot on the field.
     public void setCurrentPosition(float rotation, double x, double y) {
-        this.rotation = rotation;
-        locationX = x;
-        locationY = y;
+        Robot.rotation = rotation;
+        Robot.locationX = x;
+        Robot.locationY = y;
     }
 
     //returns the angle from the robot's current position to the given target position.
@@ -560,10 +565,10 @@ public class Robot {
 
         //calculating correction needed to steer the robot towards the degreesDirectionFace
         float relativeRotation =
-                getRelativeAngle(degreesDirectionFace, rotation);
+                getRelativeAngle(degreesDirectionFace, Robot.rotation);
         double turnCorrection =
-                Math.pow(LARGE_CORRECTION * relativeRotation, 3) +
-                        FINE_CORRECTION * relativeRotation;
+                Math.pow(CUBIC_CORRECTION * relativeRotation, 3) +
+                        LINEAR_CORRECTION * relativeRotation;
 
         double powerForwardRight = scalar * (q + turnCorrection);
         double powerForwardLeft = scalar * (p - turnCorrection);
@@ -604,12 +609,18 @@ public class Robot {
     //Outputs the power necessary to turn and face a provided direction
     public double[] getFacePowers(float direction, double power) {
         angularVelocity = imu.getAngularVelocity().xRotationRate;
-        double relativeAngle = getRelativeAngle(direction, rotation);
-        double scaler = Math.pow(LARGE_CORRECTION * relativeAngle, 3) + FINE_CORRECTION * relativeAngle;
+        double relativeAngle = getRelativeAngle(direction, Robot.rotation);
+        double scaler = Math.pow(CUBIC_CORRECTION * relativeAngle, 3) + FACE_LINEAR_CORRECTION * relativeAngle;
+
+        if (relativeAngle > 0.5) {
+            scaler += FACE_MIN_CORRECTION;
+        } else if (relativeAngle < -0.5) {
+            scaler -= FACE_MIN_CORRECTION;
+        }
 
         if (relativeAngle != 0) {
             double momentumRelative =  angularVelocity * (relativeAngle / Math.abs(relativeAngle));
-            double exponential = Math.pow(MOMENTUM_CORRECTION, MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
+            double exponential = Math.pow(FACE_MOMENTUM_CORRECTION, FACE_MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
             double momentumCorrection = (MOMENTUM_MAX_CORRECTION*exponential)/(1+exponential);
 
             scaler *= momentumCorrection;

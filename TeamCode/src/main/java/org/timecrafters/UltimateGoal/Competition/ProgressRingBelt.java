@@ -1,6 +1,7 @@
 package org.timecrafters.UltimateGoal.Competition;
 
 import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.cyberarm.engine.V2.CyberarmState;
 
@@ -15,20 +16,24 @@ public class ProgressRingBelt extends CyberarmState {
         this.robot = robot;
     }
 
+    private void prep(){
+        robot.ringBeltMotor.setTargetPosition(targetPos);
+        robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        robot.ringBeltMotor.setPower(0.7);
+        robot.ringBeltStage += 1;
+        robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.BLUE);
+    }
+
     @Override
     public void start() {
         int currentPos = robot.ringBeltMotor.getCurrentPosition();
         if (robot.ringBeltStage < 2) {
             targetPos = currentPos + Robot.RING_BELT_GAP;
-            robot.ringBeltOn();
-            robot.ringBeltStage += 1;
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.BLUE);
+            prep();
         } else if (robot.ringBeltStage == 2) {
-            targetPos = currentPos + 160;
-            robot.ringBeltOn();
-            robot.ringBeltStage += 1;
+            targetPos = currentPos + 240;
+            prep();
             prepLaunch = !robot.initLauncher;
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.BLUE);
         } else if (robot.ringBeltStage > 2) {
             setHasFinished(true);
         }
@@ -41,8 +46,6 @@ public class ProgressRingBelt extends CyberarmState {
 
         int currentPos = robot.ringBeltMotor.getCurrentPosition();
         if (currentPos >= targetPos) {
-            robot.ringBeltMotor.setPower(0);
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
             if(prepLaunch) {
                 robot.launchMotor.setPower(Robot.LAUNCH_POWER);
             }

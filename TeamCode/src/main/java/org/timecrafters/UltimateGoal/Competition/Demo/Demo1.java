@@ -1,13 +1,11 @@
-package org.timecrafters.UltimateGoal.Competition.TeleOp;
-
-import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
+package org.timecrafters.UltimateGoal.Competition.Demo;
 
 import org.cyberarm.engine.V2.CyberarmState;
 import org.timecrafters.UltimateGoal.Competition.Autonomous.DriveToCoordinates;
 import org.timecrafters.UltimateGoal.Competition.Autonomous.FindWobbleGoal;
 import org.timecrafters.UltimateGoal.Competition.Robot;
 
-public class Player1 extends CyberarmState {
+public class Demo1 extends CyberarmState {
     private Robot robot;
 
     //normal drive control
@@ -45,7 +43,7 @@ public class Player1 extends CyberarmState {
     private float launchAnglePower2;
     private float launchAnglePower3;
 
-    public Player1(Robot robot) {
+    public Demo1(Robot robot) {
         this.robot = robot;
     }
 
@@ -55,14 +53,6 @@ public class Player1 extends CyberarmState {
         pairSnapping = robot.stateConfiguration.variable("tele","control", "pairSnapping").value();
         faceControlThreshold = robot.stateConfiguration.variable("tele","control", "faceControlT").value();
 
-        launchTolerance = robot.inchesToTicks((double) robot.stateConfiguration.variable("tele","launchPosG","tolPos").value());
-        launchPower = robot.stateConfiguration.variable("tele","launchPosG","power").value();
-        launchBrakeTime = robot.stateConfiguration.variable("tele","launchPosG","brakeMS").value();
-
-        launchAngleGoal = robot.stateConfiguration.variable("tele","launchAngles","goal").value();
-        launchAnglePower1 = robot.stateConfiguration.variable("tele","launchAngles","p1").value();
-        launchAnglePower2 = robot.stateConfiguration.variable("tele","launchAngles","p2").value();
-        launchAnglePower3 = robot.stateConfiguration.variable("tele","launchAngles","p3").value();
     }
 
     @Override
@@ -86,7 +76,7 @@ public class Player1 extends CyberarmState {
 
         runNextFindWobble = (findWobbleGoal == null || findWobbleGoal.getHasFinished());
 
-        boolean findWobbleInput = engine.gamepad1.x;
+        boolean findWobbleInput = engine.gamepad1.dpad_up;
         if (findWobbleInput) {
             if (runNextFindWobble && !findWobbleInputPrev) {
                 findWobbleGoal = new FindWobbleGoal(robot, "auto", "08_0");
@@ -97,21 +87,6 @@ public class Player1 extends CyberarmState {
             findWobbleGoal.setHasFinished(true);
         }
         findWobbleInputPrev = findWobbleInput;
-
-
-        runNextDriveToLaunch = (driveToLaunch == null || driveToLaunch.getHasFinished());
-
-        boolean driveToLaunchInput = engine.gamepad1.y && !findWobbleInput;
-        if (driveToLaunchInput) {
-            if (runNextDriveToLaunch && !driveToLaunchInputPrev) {
-                driveToLaunch = new DriveToCoordinates(robot, robot.launchPositionX,robot.launchPositionY,robot.launchRotation,launchTolerance,launchPower,launchBrakeTime);
-                addParallelState(driveToLaunch);
-            }
-            faceDirection = robot.getRotation();
-        } else if (!runNextDriveToLaunch) {
-            driveToLaunch.setHasFinished(true);
-        }
-        driveToLaunchInputPrev = driveToLaunchInput;
 
         if (childrenHaveFinished()) {
             //Normal Driver Controls
@@ -128,10 +103,10 @@ public class Player1 extends CyberarmState {
             rightJoystickDegrees = robot.getRelativeAngle(90, (float) Math.toDegrees(Math.atan2(rightJoystickX, -rightJoystickY)));
             rightJoystickMagnitude = Math.hypot(rightJoystickX, rightJoystickY);
 
-            //allows the the driver to indicate which direction the robot is currently looking
+            //allows the the driver to indicate which direction the robot is currently looking so
             //so that the controller and robot can be re-synced in the event of a bad initial
             //position.
-            if (engine.gamepad1.back) {
+            if (engine.gamepad1.right_stick_button) {
                 robot.setLocalization(rightJoystickDegrees, robot.getLocationX(), robot.getLocationY());
                 faceDirection = rightJoystickDegrees;
             }
@@ -144,16 +119,6 @@ public class Player1 extends CyberarmState {
             }
             rightJoystickMagnitudePrevious = rightJoystickMagnitude;
 
-            //sets the launch positions to
-            if (engine.gamepad1.dpad_up) {
-                faceDirection = launchAngleGoal;
-            } else if (engine.gamepad1.dpad_right) {
-                faceDirection = launchAnglePower1;
-            } else if (engine.gamepad1.dpad_down) {
-                faceDirection = launchAnglePower2;
-            } else if (engine.gamepad1.dpad_left) {
-                faceDirection = launchAnglePower3;
-            }
 
             if (leftJoystickMagnitude == 0) {
                 double[] facePowers = robot.getFacePowers(faceDirection, 0.4);
@@ -168,19 +133,6 @@ public class Player1 extends CyberarmState {
             robot.setDrivePower(powers[0], powers[1], powers[2], powers[3]);
         }
 
-
-        double ringBeltPower = robot.ringBeltMotor.getPower();
-        if (ringBeltPower > 0 && Math.abs(robot.ringBeltMotor.getTargetPosition() - robot.ringBeltMotor.getCurrentPosition()) > 10) {
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.HEARTBEAT_BLUE );
-        } else if (ringBeltPower < 0) {
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.HEARTBEAT_RED);
-        }  else {
-            if (drivePower == 1) {
-                robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
-            } else {
-                robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GOLD);
-            }
-        }
     }
 
     @Override

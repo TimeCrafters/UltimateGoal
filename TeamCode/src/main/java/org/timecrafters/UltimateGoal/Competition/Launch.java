@@ -1,6 +1,7 @@
 package org.timecrafters.UltimateGoal.Competition;
 
 import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
+import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.cyberarm.engine.V2.CyberarmState;
 
@@ -29,14 +30,15 @@ public class Launch extends CyberarmState {
     public void start() {
         try {
             if (robot.stateConfiguration.action(groupName, actionName).enabled) {
-                robot.ringBeltMotor.setPower(0.5);
-                robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_BLUE);
+                robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                robot.ringBeltMotor.setPower(0.7);
+
             } else {
                 setHasFinished(true);
             }
         } catch (NullPointerException e){
-            robot.ringBeltMotor.setPower(0.5);
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_BLUE);
+            robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            robot.ringBeltMotor.setPower(0.7);
         }
 
     }
@@ -74,7 +76,7 @@ public class Launch extends CyberarmState {
                 robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
             } else {
                 hasCycled = true;
-                reducePos = (int) (beltPos + (1.5 * Robot.RING_BELT_GAP));
+                reducePos = (int) (beltPos + (robot.reduceLaunchPos));
             }
         }
         detectedPass = detectingPass;

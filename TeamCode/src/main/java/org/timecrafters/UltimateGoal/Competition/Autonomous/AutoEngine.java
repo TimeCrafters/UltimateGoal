@@ -41,6 +41,11 @@ public class AutoEngine extends CyberarmEngine {
         // since we've preloaded three rings, the ring belt stage is set to account for this;
         robot.ringBeltStage = 3;
 
+        float rotation = robot.stateConfiguration.variable("system", "startPos", "direction").value();
+        double locationX = robot.inchesToTicks((double) robot.stateConfiguration.variable("system", "startPos", "x").value());
+        double locationY = robot.inchesToTicks((double) robot.stateConfiguration.variable("system", "startPos", "y").value());
+        robot.setLocalization(rotation,locationX,locationY);
+
         launchTolerance = robot.inchesToTicks((double) robot.stateConfiguration.variable("auto","04_0","tolPos").value());
         launchPower = robot.stateConfiguration.variable("auto","04_0","power").value();
         launchBrakeTime = robot.stateConfiguration.variable("auto","04_0","brakeMS").value();
