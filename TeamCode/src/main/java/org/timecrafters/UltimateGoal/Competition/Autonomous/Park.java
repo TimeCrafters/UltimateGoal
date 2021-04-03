@@ -34,7 +34,7 @@ public class Park extends CyberarmState {
     @Override
     public void start() {
         if (Math.abs(robot.getLocationY()) > robot.inchesToTicks(8))
-        addState(new DriveToCoordinates(robot, robot.getLocationX(), parkY, parkFaceAngle, parkTolerance, parkPower,parkBrakeTime));
+        addParallelState(new DriveToCoordinates(robot, robot.getLocationX(), parkY, parkFaceAngle, parkTolerance, parkPower,parkBrakeTime));
     }
 
     @Override
