@@ -15,8 +15,8 @@ public class DemoControl extends CyberarmState {
 
     @Override
     public void start() {
-        addParallelState(new Demo1(robot));
-        addParallelState(new Demo2(robot));
+//        addParallelState(new Demo1(robot));
+//        addParallelState(new Demo2(robot));
     }
 
     @Override

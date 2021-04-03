@@ -19,7 +19,7 @@ public class ProgressRingBelt extends CyberarmState {
     private void prep(){
         robot.ringBeltMotor.setTargetPosition(targetPos);
         robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        robot.ringBeltMotor.setPower(0.7);
+        robot.ringBeltMotor.setPower(Robot.RING_BELT_NORMAL_POWER);
         robot.ringBeltStage += 1;
         robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.BLUE);
     }
@@ -28,7 +28,7 @@ public class ProgressRingBelt extends CyberarmState {
     public void start() {
         int currentPos = robot.ringBeltMotor.getCurrentPosition();
         if (robot.ringBeltStage < 2) {
-            targetPos = currentPos + Robot.RING_BELT_GAP;
+            targetPos = currentPos + robot.ringBeltGap;
             prep();
         } else if (robot.ringBeltStage == 2) {
             targetPos = currentPos + 240;

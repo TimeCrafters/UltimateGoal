@@ -14,7 +14,7 @@ public class TeleOpEngine extends CyberarmEngine {
     public void init() {
         robot = new Robot(hardwareMap);
         robot.initHardware();
-        robot.wobbleGrabServo.setPosition(0);
+        robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_OPEN);
         robot.webCamServo.setPosition(0);
         super.init();
     }

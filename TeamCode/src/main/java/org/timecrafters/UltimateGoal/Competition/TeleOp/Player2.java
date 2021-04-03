@@ -23,6 +23,8 @@ public class Player2 extends CyberarmState {
     private boolean lbPrev;
     private boolean manualArmHold;
 
+
+
     private boolean launchInput = false;
 
     public Player2(Robot robot) {
@@ -45,14 +47,13 @@ public class Player2 extends CyberarmState {
     public void exec() {
 
         //Collector control
-        if (childrenHaveFinished()) {
-            double rt = engine.gamepad2.right_trigger;
-            double lt = engine.gamepad2.left_trigger;
-            if (rt >= lt) {
-                robot.collectionMotor.setPower(rt);
-            } else {
-                robot.collectionMotor.setPower(-lt);
-            }
+
+        double rt = engine.gamepad2.right_trigger;
+        double lt = engine.gamepad2.left_trigger;
+        if (rt < lt) {
+            robot.collectionMotor.setPower(-lt);
+        } else if (childrenHaveFinished()) {
+            robot.collectionMotor.setPower(rt);
         } else {
             robot.collectionMotor.setPower(0);
         }
@@ -71,29 +72,48 @@ public class Player2 extends CyberarmState {
         }
         yPrev = y2;
 
-        //toggles wobble grabber open and closed
-        boolean x = engine.gamepad2.x;
-        if (x && !xPrev) {
-            wobbleGrabOpen = !wobbleGrabOpen;
-            if (wobbleGrabOpen) {
-                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_MAX);
-            } else {
-                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_MAX * 0.05 );
-            }
-        }
-        xPrev = x;
+
 
         //toggles the wobble arm up and down.
-        boolean b = engine.gamepad2.b;
-        if (b && !bPrev) {
-            wobbleArmUp = !wobbleArmUp;
-            if (wobbleArmUp) {
-                robot.wobbleArmMotor.setTargetPosition(550);
+//        boolean b = engine.gamepad2.b;
+//        if (b && !bPrev) {
+//            wobbleArmUp = !wobbleArmUp;
+//            if (wobbleArmUp) {
+//                robot.wobbleArmMotor.setTargetPosition(550);
+//            } else {
+//                robot.wobbleArmMotor.setTargetPosition(0);
+//            }
+//        }
+//        bPrev = b;
+
+        //manually control the wobble arm for when it's initialized in an unexpected position.
+        double leftStickY = engine.gamepad2.left_stick_y;
+
+        if (engine.gamepad2.dpad_right) {
+            if (!robot.wobbleTouchSensor.isPressed()) {
+                setArmMode(DcMotor.RunMode.RUN_USING_ENCODER);
+                robot.wobbleArmMotor.setPower(-0.2);
+                robot.wobbleArmMotor.setTargetPosition(robot.wobbleArmMotor.getCurrentPosition());
             } else {
+                setArmMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
                 robot.wobbleArmMotor.setTargetPosition(0);
+                setArmMode(DcMotor.RunMode.RUN_TO_POSITION);
+            }
+        } else if (leftStickY != 0 ) {
+            setArmMode(DcMotor.RunMode.RUN_USING_ENCODER);
+            robot.wobbleArmMotor.setPower(0.15 * leftStickY);
+            robot.wobbleArmMotor.setTargetPosition(robot.wobbleArmMotor.getCurrentPosition());
+        } else {
+            setArmMode(DcMotor.RunMode.RUN_TO_POSITION);
+            robot.wobbleArmMotor.setPower(0.5);
+            if (engine.gamepad2.dpad_up) {
+                robot.wobbleArmMotor.setTargetPosition(robot.wobbleUpPos);
+            } else if (engine.gamepad2.dpad_down) {
+                robot.wobbleArmMotor.setTargetPosition(robot.wobbleDownPos);
+            } else if (engine.gamepad2.dpad_left) {
+                robot.wobbleArmMotor.setTargetPosition(robot.wobbleDropPos );
             }
         }
-        bPrev = b;
 
         //manually toggle the launch wheel for emergencies
         boolean a = engine.gamepad2.a;
@@ -106,20 +126,8 @@ public class Player2 extends CyberarmState {
         }
         aPrev = a;
 
-        //manually control the wobble arm for when it's initialized in an unexpected position.
-        if (engine.gamepad2.dpad_up) {
-            robot.wobbleArmMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            robot.wobbleArmMotor.setPower(0.5);
-            manualArmHold = true;
-        } else if (engine.gamepad2.dpad_down) {
-            robot.wobbleArmMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            robot.wobbleArmMotor.setPower(-0.1);
-            manualArmHold = true;
-        } else if (manualArmHold) {
-            manualArmHold = false;
-            robot.wobbleArmMotor.setTargetPosition(robot.wobbleArmMotor.getCurrentPosition());
-            robot.wobbleArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-        }
+
+
 
         //allows the driver to revers the belt in the event of a jam
         boolean lb = engine.gamepad2.left_bumper;
@@ -127,7 +135,7 @@ public class Player2 extends CyberarmState {
             runModePrev = robot.ringBeltMotor.getMode();
             beltPowerPrev = robot.ringBeltMotor.getPower();
             robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            robot.ringBeltMotor.setPower(-Robot.RING_BELT_POWER);
+            robot.ringBeltMotor.setPower(-Robot.RING_BELT_SLOW_POWER);
         }
 
         if (!lb && lbPrev) {
@@ -138,13 +146,21 @@ public class Player2 extends CyberarmState {
         lbPrev = lb;
     }
 
+    private void setArmMode(DcMotor.RunMode runMode) {
+        if (robot.wobbleArmMotor.getMode() != runMode) {
+             robot.wobbleArmMotor.setMode(runMode);
+        }
+    }
+
     @Override
     public void telemetry() {
-        engine.telemetry.addLine("belt");
-        engine.telemetry.addData("power", robot.ringBeltMotor.getPower());
-        engine.telemetry.addData("pos", robot.ringBeltMotor.getCurrentPosition());
-        engine.telemetry.addData("target", robot.ringBeltMotor.getTargetPosition());
+//        engine.telemetry.addLine("belt");
+//        engine.telemetry.addData("power", robot.ringBeltMotor.getPower());
+//        engine.telemetry.addData("pos", robot.ringBeltMotor.getCurrentPosition());
+//        engine.telemetry.addData("target", robot.ringBeltMotor.getTargetPosition());
 
+        engine.telemetry.addData("Touch Sensor Pressed", robot.wobbleTouchSensor.isPressed());
+        engine.telemetry.addData("  Sensor value", robot.wobbleTouchSensor.getValue());
         engine.telemetry.addData("Player 2 children", childrenHaveFinished());
         for (CyberarmState state : children) {
             if (!state.getHasFinished()) {

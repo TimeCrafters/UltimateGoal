@@ -1,6 +1,5 @@
 package org.timecrafters.UltimateGoal.Competition;
 
-import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.cyberarm.engine.V2.CyberarmState;
@@ -22,7 +21,7 @@ public class UnstickRingBelt extends CyberarmState {
         lastRunMode = robot.ringBeltMotor.getMode();
         int currentPos = robot.ringBeltMotor.getCurrentPosition();
         targetPos = currentPos - robot.beltReverseTicks;
-        robot.ringBeltMotor.setPower(-Robot.RING_BELT_POWER);
+        robot.ringBeltMotor.setPower(-Robot.RING_BELT_SLOW_POWER);
     }
 
     @Override

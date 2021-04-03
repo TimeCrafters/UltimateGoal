@@ -31,14 +31,14 @@ public class Launch extends CyberarmState {
         try {
             if (robot.stateConfiguration.action(groupName, actionName).enabled) {
                 robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-                robot.ringBeltMotor.setPower(0.7);
+                robot.ringBeltMotor.setPower(Robot.RING_BELT_NORMAL_POWER);
 
             } else {
                 setHasFinished(true);
             }
         } catch (NullPointerException e){
             robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-            robot.ringBeltMotor.setPower(0.7);
+            robot.ringBeltMotor.setPower(Robot.RING_BELT_NORMAL_POWER);
         }
 
     }
@@ -65,25 +65,25 @@ public class Launch extends CyberarmState {
             //the first receiving position.
 
             if (hasCycled) {
-                robot.ringBeltMotor.setPower(0);
                 robot.ringBeltStage = 0;
+                robot.ringBeltMotor.setTargetPosition(beltPos);
+                robot.ringBeltMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
                 if (!robot.initLauncher) {
                     robot.launchMotor.setPower(0);
                 }
 
                 setHasFinished(true);
-                robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.DARK_GREEN);
             } else {
                 hasCycled = true;
-                reducePos = (int) (beltPos + (robot.reduceLaunchPos));
+                reducePos = beltPos + (robot.reduceLaunchPos);
             }
         }
         detectedPass = detectingPass;
 
         boolean reduceCondition = (hasCycled && beltPos > reducePos);
         if (reduceCondition && !reduceConditionPrev){
-            robot.ringBeltOn();
+            robot.ringBeltMotor.setPower(Robot.RING_BELT_SLOW_POWER);
 
             //the ring belt stage lets other states know that the robot has finished launching all three rings
             //and is now returning to loading position.

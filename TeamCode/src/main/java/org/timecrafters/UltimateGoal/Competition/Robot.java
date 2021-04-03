@@ -1,5 +1,11 @@
 package org.timecrafters.UltimateGoal.Competition;
 
+/*
+The robot object contains all the hardware and functions that are used in both teleOp and
+Autonomous. This includes drive functions, localization functions, shared constants, and a few
+general calculations and debugging tools.
+*/
+
 import android.os.Environment;
 import android.util.Log;
 
@@ -47,12 +53,18 @@ public class Robot {
         this.hardwareMap = hardwareMap;
     }
 
+    //The TimeCraftersConfiguration is part of a debugging and tuning tool that allows us to edit
+    //variables saved on the phone, without having to re-download the whole program.
     public TimeCraftersConfiguration stateConfiguration = new TimeCraftersConfiguration();
+
+    //We use the IMU to get reliable rotation and angular velocity information. Experimentation has
+    //demonstrated that the accelerometer and related integrations aren't as accurate.
     public BNO055IMU imu;
 
+    //The LEDs are used to provide driver feedback and for looking beautiful
     public RevBlinkinLedDriver ledDriver;
 
-    //drive system
+    //drive and dead-wheal hardware
     public DcMotor driveFrontLeft;
     public DcMotor driveBackLeft;
     public DcMotor driveFrontRight;
@@ -62,8 +74,9 @@ public class Robot {
     public DcMotor encoderRight;
     public DcMotor encoderBack;
 
-    //Steering Constants
-    static final double CUBIC_CORRECTION = 0.025;
+    //Motion Constants
+    static final double CUBIC_CORRECTION = 0.035;
+    static final double FACE_CUBIC_CORRECTION = 0.025;
     static final double LINEAR_CORRECTION = 0.055;
     static final double FACE_MIN_CORRECTION = 0.2;
     static final double FACE_LINEAR_CORRECTION = 0.025;
@@ -74,7 +87,7 @@ public class Robot {
     static final double FACE_MOMENTUM_CORRECTION = 1.06;
     static final double FACE_MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(FACE_MOMENTUM_MAX_CORRECTION-1)/Math.log10(FACE_MOMENTUM_CORRECTION));
 
-    //Conversion Constants
+    //Unit Conversion Constants
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 2.3622;
     static final int COUNTS_PER_REVOLUTION = 8192;
     static final float mmPerInch = 25.4f;
@@ -82,16 +95,6 @@ public class Robot {
     static final double TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE_FORWARD = 18.8;
     static final double TICKS_PER_ROBOT_DEGREE_CLOCKWISE = 8.4;
     static final double TICKS_PER_ROBOT_DEGREE_COUNTERCLOCKWISE = 8.6;
-
-    // Inches Forward of axis of rotation
-    static final float CAMERA_FORWARD_DISPLACEMENT  = 8f;
-    // Inches above Ground
-    static final float CAMERA_VERTICAL_DISPLACEMENT = 9.5f;
-    // Inches Left of axis of rotation
-    static final float CAMERA_LEFT_DISPLACEMENT = 4f;
-
-    static final double CAMERA_DISPLACEMENT_MAG = Math.hypot(CAMERA_FORWARD_DISPLACEMENT,CAMERA_LEFT_DISPLACEMENT);
-    static final float CAMERA_DISPLACEMENT_DIRECTION = (float) -Math.atan(CAMERA_LEFT_DISPLACEMENT/CAMERA_FORWARD_DISPLACEMENT);
 
     //Robot Localization
     private static double locationX;
@@ -104,6 +107,38 @@ public class Robot {
     private float rotationPrevious = 0;
     public float angularVelocity;
 
+    //vuforia navigation
+    private WebcamName webcam;
+    private VuforiaLocalizer vuforia;
+
+    // Inches Forward of axis of rotation
+    static final float CAMERA_FORWARD_DISPLACEMENT  = 8f;
+    // Inches above Ground
+    static final float CAMERA_VERTICAL_DISPLACEMENT = 9.5f;
+    // Inches Left of axis of rotation
+    static final float CAMERA_LEFT_DISPLACEMENT = 4f;
+
+    static final double CAMERA_DISPLACEMENT_MAG = Math.hypot(CAMERA_FORWARD_DISPLACEMENT,CAMERA_LEFT_DISPLACEMENT);
+    static final float CAMERA_DISPLACEMENT_DIRECTION = (float) -Math.atan(CAMERA_LEFT_DISPLACEMENT/CAMERA_FORWARD_DISPLACEMENT);
+
+    public boolean trackableVisible;
+    private VuforiaTrackables targetsUltimateGoal;
+    private List<VuforiaTrackable> trackables = new ArrayList<VuforiaTrackable>();
+    private OpenGLMatrix lastConfirmendLocation;
+
+    private long timeStartZeroVelocity = 0;
+    private long minCheckDurationMs = 500;
+    private int minCheckVelocity = 1;
+    private float vuforiaRotationCull;
+
+    //The servo mount for our camera allows us to look down for ideal TensorFlow and look up for
+    //ideal Vuforia Navigation
+    public Servo webCamServo;
+    public static final double CAM_SERVO_DOWN = 0.15;
+
+    //TensorFlow Object Detection
+    public TFObjectDetector tfObjectDetector;
+    private static final float MINIMUM_CONFIDENCE = 0.8f;
 
     //Launcher
     public DcMotor launchMotor;
@@ -114,57 +149,36 @@ public class Robot {
     public double launchPositionY;
     public float launchRotation;
     public int reduceLaunchPos;
-    public static final double LAUNCH_TOLERANCE_POS = 0.5 * (COUNTS_PER_REVOLUTION/ENCODER_CIRCUMFERENCE);
-    public static final double LAUNCH_TOLERANCE_FACE = 0.5;
 
     public boolean initLauncher;
 
     //Ring Intake
     public DcMotor collectionMotor;
-    public Rev2mDistanceSensor ringIntakeSensor;
-
-    public static final double RING_DETECT_DISTANCE = 100;
-    public static final double RING_DETECT_DELAY = 1000;
 
     //Ring Belt
     public DcMotor ringBeltMotor;
     public RevTouchSensor limitSwitch;
     public int ringBeltStage;
-    public static final int RING_BELT_LOOP_TICKS = 2544;
-    public static final int RING_BELT_GAP = 700;
-    public static final double RING_BELT_POWER = 0.2;
+    public int ringBeltGap = 700;
+    public static final double RING_BELT_SLOW_POWER = 0.2;
+    public static final double RING_BELT_NORMAL_POWER = 0.6;
     private int ringBeltPrev;
     public long beltMaxStopTime;
     public int beltReverseTicks;
     public int beltMaxStopTicks;
 
-    //Wobble Goal Arm
-    public DcMotor wobbleArmMotor;
+    //Wobble Goal Arm & Grabber
+    public DcMotor  wobbleArmMotor;
     public Servo  wobbleGrabServo;
-    public static final int WOBBLE_ARM_DOWN = -710;
-    public static final double WOBBLE_SERVO_MAX = 0.3;
+    public int wobbleDownPos;
+    public int wobbleUpPos;
+    public int wobbleDropPos;
+    public static final double WOBBLE_SERVO_OPEN = 0;
+    public static final double WOBBLE_SERVO_CLOSED = 1;
     public RevColorSensorV3 wobbleColorSensor;
     public double wobbleScoreX;
     public double wobbleScoreY;
-
-    //vuforia navigation
-    private WebcamName webcam;
-    private VuforiaLocalizer vuforia;
-    public Servo webCamServo;
-    public static final double CAM_SERVO_DOWN = 0.15;
-
-    public boolean trackableVisible;
-    private VuforiaTrackables targetsUltimateGoal;
-    private List<VuforiaTrackable> trackables = new ArrayList<VuforiaTrackable>();
-    private OpenGLMatrix lastConfirmendLocation;
-
-    private long timeStartZeroVelocity = 0;
-    private long minCheckDurationMs = 500;
-    private int minCheckVelocity = 1;
-
-    //TensorFlow Object Detection
-    public TFObjectDetector tfObjectDetector;
-    private static final float MINIMUM_CONFIDENCE = 0.8f;
+    public RevTouchSensor wobbleTouchSensor;
 
     //Debugging
     public double totalV;
@@ -172,7 +186,6 @@ public class Robot {
     public double visionY;
     public double visionZ;
     public float rawAngle;
-//    private String TestingRecord = "FrontLeft,FrontRight,BackLeft,BackRight";
     private String TestingRecord = "x,y";
 
     public double forwardVector;
@@ -213,9 +226,15 @@ public class Robot {
         wobbleArmMotor.setTargetPosition(0);
         wobbleArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
+        wobbleUpPos = stateConfiguration.variable("system","arm", "up").value();
+        wobbleDownPos = stateConfiguration.variable("system","arm", "down").value();
+        wobbleDropPos = stateConfiguration.variable("system","arm", "drop").value();
+
         wobbleGrabServo = hardwareMap.servo.get("wobbleGrab");
 
         wobbleColorSensor = hardwareMap.get(RevColorSensorV3.class, "color");
+        wobbleTouchSensor = hardwareMap.get(RevTouchSensor.class, "touch");
+
 
         //init ring belt
         collectionMotor = hardwareMap.dcMotor.get("collect");
@@ -228,6 +247,7 @@ public class Robot {
         beltMaxStopTime = stateConfiguration.variable("system","belt", "maxStopTime").value();
         beltMaxStopTicks = stateConfiguration.variable("system","belt", "maxStopTicks").value();
         beltReverseTicks = stateConfiguration.variable("system","belt", "reverseTicks").value();
+        ringBeltGap = stateConfiguration.variable("system","belt","gap").value();
 
         //init IMU
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
@@ -259,8 +279,9 @@ public class Robot {
         webCamServo = hardwareMap.servo.get("look");
         webCamServo.setDirection(Servo.Direction.REVERSE );
 
-        minCheckVelocity =stateConfiguration.variable("system", "tensorFlow", "minCheckV").value();
-        minCheckDurationMs =stateConfiguration.variable("system", "tensorFlow", "minCheckMS").value();
+        minCheckVelocity =stateConfiguration.variable("system", "camera", "minCheckV").value();
+        vuforiaRotationCull = stateConfiguration.variable("system", "camera", "rCull").value();
+        minCheckDurationMs =stateConfiguration.variable("system", "camera", "minCheckMS").value();
 
         //Init Launch Motor
         DcMotor launcher = hardwareMap.dcMotor.get("launcher");
@@ -352,7 +373,7 @@ public class Robot {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters parameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        parameters.minResultConfidence = stateConfiguration.variable("system", "tensorFlow", "minConfidence").value();
+        parameters.minResultConfidence = stateConfiguration.variable("system", "camera", "minConfidence").value();
         tfObjectDetector = ClassFactory.getInstance().createTFObjectDetector(parameters, vuforia);
         tfObjectDetector.loadModelFromAsset("UltimateGoal.tflite", "Quad", "Single");
     }
@@ -413,28 +434,29 @@ public class Robot {
         Robot.rotation += rotationChange;
 
 
-//        totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) + Math.abs(encoderBackChange);
-
-//
-//        if (totalV < minCheckVelocity) {
-//            long timeCurrent = System.currentTimeMillis();
-//
-//            if (timeStartZeroVelocity == 0) {
-//                timeStartZeroVelocity = timeCurrent;
-//            } else if (timeCurrent - timeStartZeroVelocity >= minCheckDurationMs) {
-//                syncWithVuforia();
-//            }
-//
-//        } else {
-//            timeStartZeroVelocity = 0;
-//        }
-
+        totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) + Math.abs(encoderBackChange);
 
         if (Robot.rotation > 180) {
             Robot.rotation -= 360;
         }
         if (Robot.rotation < -180) {
             Robot.rotation += 360;
+        }
+
+    }
+
+    public void syncIfStationary() {
+        if (totalV < minCheckVelocity) {
+            long timeCurrent = System.currentTimeMillis();
+
+            if (timeStartZeroVelocity == 0) {
+                timeStartZeroVelocity = timeCurrent;
+            } else if (timeCurrent - timeStartZeroVelocity >= minCheckDurationMs ) {
+                syncWithVuforia();
+            }
+
+        } else {
+            timeStartZeroVelocity = 0;
         }
 
     }
@@ -454,24 +476,28 @@ public class Robot {
 
                 //For our tournament, it makes sense to make zero degrees towards the goal.
                 //Orientation is inverted to have clockwise be positive.
-                Orientation rotation = Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
-                Robot.rotation = 90-rotation.thirdAngle;
+                Orientation orientation = Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
+                float vuforiaRotation = 90-orientation.thirdAngle;
 
-                if (Robot.rotation > 180) {
-                    Robot.rotation -= -180;
+                if (vuforiaRotation > 180) {
+                    vuforiaRotation -= -180;
                 }
 
-                VectorF translation = lastConfirmendLocation.getTranslation();
-                double camX = -translation.get(1) / mmPerInch;
-                double camY = translation.get(0) / mmPerInch;
+                if (Math.abs(rotation - vuforiaRotation) < vuforiaRotationCull) {
+                    rotation = vuforiaRotation;
 
-                double displaceX = CAMERA_DISPLACEMENT_MAG * Math.sin(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
-                double displaceY = CAMERA_DISPLACEMENT_MAG * Math.cos(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+                    VectorF translation = lastConfirmendLocation.getTranslation();
+                    double camX = -translation.get(1) / mmPerInch;
+                    double camY = translation.get(0) / mmPerInch;
 
-                locationX = inchesToTicks(camX - displaceX);
-                locationY = inchesToTicks(camY - displaceY);
+                    double displaceX = CAMERA_DISPLACEMENT_MAG * Math.sin(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+                    double displaceY = CAMERA_DISPLACEMENT_MAG * Math.cos(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
 
-                break;
+                    locationX = inchesToTicks(camX - displaceX);
+                    locationY = inchesToTicks(camY - displaceY);
+
+                    break;
+                }
             }
         }
     }
@@ -570,21 +596,20 @@ public class Robot {
                 Math.pow(CUBIC_CORRECTION * relativeRotation, 3) +
                         LINEAR_CORRECTION * relativeRotation;
 
+        if (relativeRotation != 0) {
+            double momentumRelative =  angularVelocity * (relativeRotation / Math.abs(relativeRotation));
+            double exponential = Math.pow(MOMENTUM_CORRECTION, MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
+            double momentumCorrection = (MOMENTUM_MAX_CORRECTION*exponential)/(1+exponential);
+            //reduces concern for  momentum when the angle is far away from target
+            turnCorrection *= momentumCorrection + ((Math.abs(relativeRotation) * (1  - momentumCorrection)) / 180 );
+//            turnCorrection *= momentumCorrection;
+        }
+
         double powerForwardRight = scalar * (q + turnCorrection);
         double powerForwardLeft = scalar * (p - turnCorrection);
         double powerBackRight = scalar * (p + turnCorrection);
         double powerBackLeft = scalar * (q - turnCorrection);
 
-
-        if (relativeRotation != 0) {
-            double momentumRelative =  angularVelocity * (relativeRotation / Math.abs(relativeRotation));
-            double exponential = Math.pow(MOMENTUM_CORRECTION, MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
-            double momentumCorrection = (MOMENTUM_MAX_CORRECTION*exponential)/(1+exponential);
-            powerForwardRight *= momentumCorrection;
-            powerForwardLeft *= momentumCorrection;
-            powerBackRight *= momentumCorrection;
-            powerBackLeft *= momentumCorrection;
-        }
 
         // The "extreme" is the power value that is furthest from zero. When this values exceed the
         // -1 to 1 power range, dividing the powers by the "extreme" scales everything back into the
@@ -610,7 +635,7 @@ public class Robot {
     public double[] getFacePowers(float direction, double power) {
         angularVelocity = imu.getAngularVelocity().xRotationRate;
         double relativeAngle = getRelativeAngle(direction, Robot.rotation);
-        double scaler = Math.pow(CUBIC_CORRECTION * relativeAngle, 3) + FACE_LINEAR_CORRECTION * relativeAngle;
+        double scaler = Math.pow(FACE_CUBIC_CORRECTION * relativeAngle, 3) + FACE_LINEAR_CORRECTION * relativeAngle;
 
         if (relativeAngle > 0.5) {
             scaler += FACE_MIN_CORRECTION;
@@ -631,10 +656,6 @@ public class Robot {
 
         double[] powers = {left,right};
         return powers;
-    }
-
-    public void ringBeltOn() {
-        ringBeltMotor.setPower(RING_BELT_POWER);
     }
 
     public boolean beltIsStuck() {

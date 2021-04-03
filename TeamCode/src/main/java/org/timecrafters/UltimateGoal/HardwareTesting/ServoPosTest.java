@@ -20,12 +20,11 @@ public class ServoPosTest extends CyberarmState {
     @Override
     public void init() {
         servo = engine.hardwareMap.servo.get("look");
-        servo.setDirection(Servo.Direction.REVERSE );
     }
 
     @Override
     public void exec() {
-        servoPos = engine.gamepad1.right_stick_y * 0.2;
+        servoPos = engine.gamepad1.right_stick_y;
         servo.setPosition(servoPos);
     }
 

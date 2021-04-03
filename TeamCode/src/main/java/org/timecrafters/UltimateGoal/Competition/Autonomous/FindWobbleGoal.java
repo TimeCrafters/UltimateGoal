@@ -16,6 +16,8 @@ public class FindWobbleGoal extends CyberarmState {
     private boolean cCheckPrev;
     private boolean ccCheckPrev;
     private float startRotation;
+    private boolean foundGoalRotation;
+    private float wobbleGoalRotation;
 
     public FindWobbleGoal(Robot robot, String groupName, String actionName) {
         this.robot = robot;
@@ -44,6 +46,7 @@ public class FindWobbleGoal extends CyberarmState {
         double sensorValue = robot.wobbleColorSensor.getDistance(DistanceUnit.MM);
 
         if (sensorValue > turnCheck) {
+
             float rotation = robot.getRelativeAngle(startRotation,robot.getRotation());
 
             boolean cCheck = rotation > range;
@@ -61,9 +64,15 @@ public class FindWobbleGoal extends CyberarmState {
 
         } else {
              if (sensorValue > driveCheck) {
-                 robot.setDrivePower(-power,-power,-power,-power);
+                 if (!foundGoalRotation) {
+                     foundGoalRotation = true;
+                     wobbleGoalRotation = robot.getRotation();
+                 }
+                 double[] powers = robot.getMecanumPowers(wobbleGoalRotation - 90, power*2 , wobbleGoalRotation);
+                 robot.setDrivePower(powers[0],powers[1],powers[2],powers[3]);
              } else {
                  robot.setDrivePower(0,0,0,0);
+                 robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_CLOSED);
                  setHasFinished(true);
              }
         }

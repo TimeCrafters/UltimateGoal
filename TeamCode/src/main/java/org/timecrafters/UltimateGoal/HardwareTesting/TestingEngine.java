@@ -13,7 +13,7 @@ public class TestingEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        addState(new LEDTest());
+        addState(new ServoPosTest());
     }
 
 }

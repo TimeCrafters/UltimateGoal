@@ -36,9 +36,9 @@ public class WobbleGrab extends CyberarmState {
     public void start() {
         if (enabled) {
             if (open) {
-                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_MAX);
+                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_OPEN);
             } else {
-                robot.wobbleGrabServo.setPosition(0);
+                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_CLOSED);
             }
         } else {
             setHasFinished(true);
@@ -48,6 +48,12 @@ public class WobbleGrab extends CyberarmState {
     @Override
     public void exec() {
         setHasFinished(runTime() > waitTime);
+    }
+
+    @Override
+    public void telemetry() {
+        engine.telemetry.addData("runTime", runTime());
+        engine.telemetry.addData("wait", waitTime);
     }
 
 }

@@ -7,19 +7,20 @@ public class WobbleArm extends CyberarmState {
     private Robot robot;
     private String groupName;
     private String actionName;
-    private boolean armUp;
+    private int suggestedPos;
+    private int targetPos = -1;
     private long waitTime = -1;
 
-    public WobbleArm(Robot robot, String groupName, String actionName, boolean armUp) {
+    public WobbleArm(Robot robot, String groupName, String actionName, int targetPos) {
         this.robot = robot;
         this.groupName  = groupName;
         this.actionName = actionName;
-        this.armUp = armUp;
+        this.suggestedPos = targetPos;
     }
 
-    public WobbleArm(Robot robot, boolean armUp, long waitTime) {
+    public WobbleArm(Robot robot, int targetPos, long waitTime) {
         this.robot = robot;
-        this.armUp = armUp;
+        this.targetPos = targetPos;
         this.waitTime = waitTime;
     }
 
@@ -27,17 +28,17 @@ public class WobbleArm extends CyberarmState {
     public void init() {
         if (waitTime == -1) {
             waitTime = robot.stateConfiguration.variable(groupName, actionName, "wait").value();
+            targetPos = robot.stateConfiguration.variable(groupName,actionName,"armPos").value();
+            if (targetPos == -1) {
+                targetPos = suggestedPos;
+            }
         }
     }
 
     @Override
     public void start() {
-        robot.wobbleArmMotor.setPower(0.3);
-        if (armUp) {
-            robot.wobbleArmMotor.setTargetPosition(0);
-        } else {
-            robot.wobbleArmMotor.setTargetPosition(Robot.WOBBLE_ARM_DOWN);
-        }
+        robot.wobbleArmMotor.setPower(0.5);
+        robot.wobbleArmMotor.setTargetPosition(targetPos);
     }
 
     @Override
@@ -48,5 +49,7 @@ public class WobbleArm extends CyberarmState {
     @Override
     public void telemetry() {
         engine.telemetry.addData("runTime", runTime());
+        engine.telemetry.addData("target", targetPos);
+        engine.telemetry.addData("wait", waitTime);
     }
 }

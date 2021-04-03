@@ -30,6 +30,7 @@ public class Player1 extends CyberarmState {
     private FindWobbleGoal findWobbleGoal;
     private boolean runNextFindWobble;
     private boolean findWobbleInputPrev;
+    private boolean aPrev;
 
     //Drive to launch control
     private DriveToCoordinates driveToLaunch;
@@ -84,20 +85,43 @@ public class Player1 extends CyberarmState {
         }
         lbPrev = lb;
 
+        if (engine.gamepad1.guide) {
+            robot.syncIfStationary();
+        }
+
         runNextFindWobble = (findWobbleGoal == null || findWobbleGoal.getHasFinished());
 
         boolean findWobbleInput = engine.gamepad1.x;
         if (findWobbleInput) {
-            if (runNextFindWobble && !findWobbleInputPrev) {
-                findWobbleGoal = new FindWobbleGoal(robot, "auto", "08_0");
-                addParallelState(findWobbleGoal);
+            //if the claw is open, run FindWobbleGoal
+            if (robot.wobbleGrabServo.getPosition() == Robot.WOBBLE_SERVO_OPEN) {
+
+                faceDirection = robot.getRotation();
+
+                if (runNextFindWobble && !findWobbleInputPrev) {
+                    findWobbleGoal = new FindWobbleGoal(robot, "auto", "08_0");
+                    addParallelState(findWobbleGoal);
+                }
+                //if the claw is closed, open the claw.
+            } else if (!findWobbleInputPrev) {
+                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_OPEN);
             }
-            faceDirection = robot.getRotation();
+            //if the button is released cancel the search
         } else if (!runNextFindWobble) {
             findWobbleGoal.setHasFinished(true);
         }
         findWobbleInputPrev = findWobbleInput;
 
+        //toggles wobble grabber open and closed
+        boolean a = engine.gamepad1.a;
+        if (a && !aPrev) {
+            if (robot.wobbleGrabServo.getPosition() == Robot.WOBBLE_SERVO_OPEN) {
+                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_CLOSED);
+            } else {
+                robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_OPEN);
+            }
+        }
+        aPrev = a;
 
         runNextDriveToLaunch = (driveToLaunch == null || driveToLaunch.getHasFinished());
 
@@ -168,7 +192,7 @@ public class Player1 extends CyberarmState {
             robot.setDrivePower(powers[0], powers[1], powers[2], powers[3]);
         }
 
-
+        //LED feedback control
         double ringBeltPower = robot.ringBeltMotor.getPower();
         if (ringBeltPower > 0 && Math.abs(robot.ringBeltMotor.getTargetPosition() - robot.ringBeltMotor.getCurrentPosition()) > 10) {
             robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.HEARTBEAT_BLUE );

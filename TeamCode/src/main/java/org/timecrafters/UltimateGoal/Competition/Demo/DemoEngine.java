@@ -1,11 +1,13 @@
 package org.timecrafters.UltimateGoal.Competition.Demo;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Robot;
 import org.timecrafters.UltimateGoal.Competition.TeleOp.TeleOpState;
 
+@Disabled
 @TeleOp (name = "Demo")
 public class DemoEngine extends CyberarmEngine {
 

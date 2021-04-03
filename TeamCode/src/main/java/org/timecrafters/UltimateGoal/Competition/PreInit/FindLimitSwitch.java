@@ -13,7 +13,7 @@ public class FindLimitSwitch extends CyberarmState {
 
     @Override
     public void start() {
-        robot.ringBeltOn();
+        robot.ringBeltMotor.setPower(Robot.RING_BELT_SLOW_POWER);
     }
 
     @Override
