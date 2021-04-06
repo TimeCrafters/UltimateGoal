@@ -58,33 +58,29 @@ public class Player2 extends CyberarmState {
             robot.collectionMotor.setPower(0);
         }
 
-        //belt progression control
-        boolean rb = engine.gamepad2.right_bumper;
-        if (rb && !rbPrev && childrenHaveFinished()) {
-            addParallelState(new ProgressRingBelt(robot));
+        if (childrenHaveFinished()) {
+            //belt progression control
+            boolean rb = engine.gamepad2.right_bumper;
+            if (rb && !rbPrev) {
+                addParallelState(new ProgressRingBelt(robot));
+            }
+            rbPrev = rb;
+
+            //main launch sequence control
+            boolean y2 = engine.gamepad2.y;
+            if (y2 && !yPrev) {
+                addParallelState(new Launch(robot));
+            }
+            yPrev = y2;
+
+
+            //special launch sequence for single shots
+            boolean x = engine.gamepad2.x;
+            if (x && !bPrev) {
+                addParallelState(new LaunchControl(robot));
+            }
+            bPrev = x;
         }
-        rbPrev = rb;
-
-        //launch sequence control
-        boolean y2 = engine.gamepad2.y;
-        if (y2 && !yPrev && childrenHaveFinished()) {
-            addParallelState(new Launch(robot));
-        }
-        yPrev = y2;
-
-
-
-        //toggles the wobble arm up and down.
-//        boolean b = engine.gamepad2.b;
-//        if (b && !bPrev) {
-//            wobbleArmUp = !wobbleArmUp;
-//            if (wobbleArmUp) {
-//                robot.wobbleArmMotor.setTargetPosition(550);
-//            } else {
-//                robot.wobbleArmMotor.setTargetPosition(0);
-//            }
-//        }
-//        bPrev = b;
 
         //manually control the wobble arm for when it's initialized in an unexpected position.
         double leftStickY = engine.gamepad2.left_stick_y;
@@ -142,8 +138,11 @@ public class Player2 extends CyberarmState {
             robot.ringBeltMotor.setPower(beltPowerPrev);
             robot.ringBeltMotor.setMode(runModePrev);
         }
-
         lbPrev = lb;
+
+//        if (engine.gamepad1.y) {
+//            setHasFinished(true);
+//        }
     }
 
     private void setArmMode(DcMotor.RunMode runMode) {
@@ -159,14 +158,15 @@ public class Player2 extends CyberarmState {
 //        engine.telemetry.addData("pos", robot.ringBeltMotor.getCurrentPosition());
 //        engine.telemetry.addData("target", robot.ringBeltMotor.getTargetPosition());
 
-        engine.telemetry.addData("Touch Sensor Pressed", robot.wobbleTouchSensor.isPressed());
-        engine.telemetry.addData("  Sensor value", robot.wobbleTouchSensor.getValue());
-        engine.telemetry.addData("Player 2 children", childrenHaveFinished());
-        for (CyberarmState state : children) {
-            if (!state.getHasFinished()) {
-                engine.telemetry.addLine("" + state.getClass());
-            }
-        }
+//        engine.telemetry.addData("ring belt stage", robot.ringBeltStage);
+//        engine.telemetry.addData("Touch Sensor Pressed", robot.wobbleTouchSensor.isPressed());
+//        engine.telemetry.addData("  Sensor value", robot.wobbleTouchSensor.getValue());
+//        engine.telemetry.addData("Player 2 children", childrenHaveFinished());
+//        for (CyberarmState state : children) {
+//            if (!state.getHasFinished()) {
+//                engine.telemetry.addLine("" + state.getClass());
+//            }
+//        }
     }
 
 }

@@ -25,7 +25,7 @@ public class TeleOpState extends CyberarmState {
 
     @Override
     public void exec() {
-
+//        setHasFinished(childrenHaveFinished());
     }
 
     @Override

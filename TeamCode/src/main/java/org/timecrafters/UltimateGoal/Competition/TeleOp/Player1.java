@@ -33,18 +33,15 @@ public class Player1 extends CyberarmState {
     private boolean aPrev;
 
     //Drive to launch control
-    private DriveToCoordinates driveToLaunch;
+    private powerShotsControl powerShots;
     private boolean runNextDriveToLaunch;
     private boolean driveToLaunchInputPrev;
 
-    private double launchTolerance;
-    private double launchPower;
-    private long launchBrakeTime;
+    private double endGameX;
+    private double endGameY;
+    private float endGameRot;
 
-    private float launchAngleGoal;
-    private float launchAnglePower1;
-    private float launchAnglePower2;
-    private float launchAnglePower3;
+    private double refinePower;
 
     public Player1(Robot robot) {
         this.robot = robot;
@@ -55,15 +52,11 @@ public class Player1 extends CyberarmState {
         cardinalSnapping = robot.stateConfiguration.variable("tele","control", "cardinalSnapping").value();
         pairSnapping = robot.stateConfiguration.variable("tele","control", "pairSnapping").value();
         faceControlThreshold = robot.stateConfiguration.variable("tele","control", "faceControlT").value();
+        refinePower = robot.stateConfiguration.variable("tele","control", "refPower").value();
 
-        launchTolerance = robot.inchesToTicks((double) robot.stateConfiguration.variable("tele","launchPosG","tolPos").value());
-        launchPower = robot.stateConfiguration.variable("tele","launchPosG","power").value();
-        launchBrakeTime = robot.stateConfiguration.variable("tele","launchPosG","brakeMS").value();
-
-        launchAngleGoal = robot.stateConfiguration.variable("tele","launchAngles","goal").value();
-        launchAnglePower1 = robot.stateConfiguration.variable("tele","launchAngles","p1").value();
-        launchAnglePower2 = robot.stateConfiguration.variable("tele","launchAngles","p2").value();
-        launchAnglePower3 = robot.stateConfiguration.variable("tele","launchAngles","p3").value();
+        endGameX = robot.stateConfiguration.variable("tele","_endGameStart","x").value();
+        endGameY = robot.stateConfiguration.variable("tele","_endGameStart","y").value();
+        endGameRot = robot.stateConfiguration.variable("tele","_endGameStart", "r").value();
     }
 
     @Override
@@ -85,9 +78,6 @@ public class Player1 extends CyberarmState {
         }
         lbPrev = lb;
 
-        if (engine.gamepad1.guide) {
-            robot.syncIfStationary();
-        }
 
         runNextFindWobble = (findWobbleGoal == null || findWobbleGoal.getHasFinished());
 
@@ -123,19 +113,24 @@ public class Player1 extends CyberarmState {
         }
         aPrev = a;
 
-        runNextDriveToLaunch = (driveToLaunch == null || driveToLaunch.getHasFinished());
+        runNextDriveToLaunch = (powerShots == null || powerShots.getHasFinished());
 
         boolean driveToLaunchInput = engine.gamepad1.y && !findWobbleInput;
         if (driveToLaunchInput) {
             if (runNextDriveToLaunch && !driveToLaunchInputPrev) {
-                driveToLaunch = new DriveToCoordinates(robot, robot.launchPositionX,robot.launchPositionY,robot.launchRotation,launchTolerance,launchPower,launchBrakeTime);
-                addParallelState(driveToLaunch);
+                powerShots = new powerShotsControl(robot);
+                addParallelState(powerShots);
             }
             faceDirection = robot.getRotation();
         } else if (!runNextDriveToLaunch) {
-            driveToLaunch.setHasFinished(true);
+            powerShots.setHasFinished(true);
         }
         driveToLaunchInputPrev = driveToLaunchInput;
+
+//        if (engine.gamepad1.y) {
+//            robot.setLocalization(endGameRot,endGameX,endGameY);
+//            setHasFinished(true);
+//        }
 
         if (childrenHaveFinished()) {
             //Normal Driver Controls
@@ -156,8 +151,14 @@ public class Player1 extends CyberarmState {
             //so that the controller and robot can be re-synced in the event of a bad initial
             //position.
             if (engine.gamepad1.back) {
-                robot.setLocalization(rightJoystickDegrees, robot.getLocationX(), robot.getLocationY());
-                faceDirection = rightJoystickDegrees;
+                float newRotation = 0;
+
+                if (rightJoystickMagnitude != 0) {
+                    newRotation = rightJoystickDegrees;
+                }
+
+                robot.setLocalization(newRotation, robot.getLocationX(), robot.getLocationY());
+                faceDirection = newRotation;
             }
 
             //if the driver is letting go of the face joystick, the robot should maintain it's current face direction.
@@ -168,18 +169,13 @@ public class Player1 extends CyberarmState {
             }
             rightJoystickMagnitudePrevious = rightJoystickMagnitude;
 
-            //sets the launch positions to
-            if (engine.gamepad1.dpad_up) {
-                faceDirection = launchAngleGoal;
-            } else if (engine.gamepad1.dpad_right) {
-                faceDirection = launchAnglePower1;
-            } else if (engine.gamepad1.dpad_down) {
-                faceDirection = launchAnglePower2;
+            if (engine.gamepad1.dpad_right) {
+                powers = new double[]{refinePower, -refinePower, refinePower, -refinePower};
+                faceDirection = robot.getRotation();
             } else if (engine.gamepad1.dpad_left) {
-                faceDirection = launchAnglePower3;
-            }
-
-            if (leftJoystickMagnitude == 0) {
+                powers = new double[]{-refinePower, refinePower, -refinePower, refinePower};
+                faceDirection = robot.getRotation();
+            } else if (leftJoystickMagnitude == 0) {
                 double[] facePowers = robot.getFacePowers(faceDirection, 0.4);
                 powers = new double[]{facePowers[0], facePowers[1], facePowers[0], facePowers[1]};
             } else {

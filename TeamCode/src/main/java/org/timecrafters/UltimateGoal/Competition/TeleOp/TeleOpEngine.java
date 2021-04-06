@@ -3,6 +3,8 @@ package org.timecrafters.UltimateGoal.Competition.TeleOp;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
+import org.timecrafters.UltimateGoal.Competition.Autonomous.DriveToCoordinates;
+import org.timecrafters.UltimateGoal.Competition.Autonomous.Face;
 import org.timecrafters.UltimateGoal.Competition.Robot;
 
 @TeleOp (name = "TeleOp",group = "comp")
@@ -14,7 +16,7 @@ public class TeleOpEngine extends CyberarmEngine {
     public void init() {
         robot = new Robot(hardwareMap);
         robot.initHardware();
-        robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_OPEN);
+        robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_CLOSED);
         robot.webCamServo.setPosition(0);
         super.init();
     }
@@ -22,6 +24,8 @@ public class TeleOpEngine extends CyberarmEngine {
     @Override
     public void setup() {
         addState(new TeleOpState(robot));
+
+
     }
 
     @Override

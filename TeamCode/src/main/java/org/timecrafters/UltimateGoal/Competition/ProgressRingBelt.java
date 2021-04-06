@@ -31,7 +31,7 @@ public class ProgressRingBelt extends CyberarmState {
             targetPos = currentPos + robot.ringBeltGap;
             prep();
         } else if (robot.ringBeltStage == 2) {
-            targetPos = currentPos + 240;
+            targetPos = currentPos + 150;
             prep();
             prepLaunch = !robot.initLauncher;
         } else if (robot.ringBeltStage > 2) {

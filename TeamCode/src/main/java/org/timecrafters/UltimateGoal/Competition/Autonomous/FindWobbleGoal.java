@@ -18,6 +18,7 @@ public class FindWobbleGoal extends CyberarmState {
     private float startRotation;
     private boolean foundGoalRotation;
     private float wobbleGoalRotation;
+    private long timeLimit;
 
     public FindWobbleGoal(Robot robot, String groupName, String actionName) {
         this.robot = robot;
@@ -31,6 +32,7 @@ public class FindWobbleGoal extends CyberarmState {
         turnCheck = robot.stateConfiguration.variable(groupName,actionName,"max").value();
         driveCheck = robot.stateConfiguration.variable(groupName,actionName,"min").value();
         range = robot.stateConfiguration.variable(groupName,actionName,"r").value();
+        timeLimit = robot.stateConfiguration.variable(groupName,actionName,"limit").value();
     }
 
     @Override
@@ -71,11 +73,19 @@ public class FindWobbleGoal extends CyberarmState {
                  double[] powers = robot.getMecanumPowers(wobbleGoalRotation - 90, power*2 , wobbleGoalRotation);
                  robot.setDrivePower(powers[0],powers[1],powers[2],powers[3]);
              } else {
-                 robot.setDrivePower(0,0,0,0);
-                 robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_CLOSED);
-                 setHasFinished(true);
+                 endSearch();
              }
         }
+
+        if (runTime() > timeLimit) {
+            endSearch();
+        }
+    }
+
+    private void endSearch() {
+        robot.setDrivePower(0,0,0,0);
+        robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_CLOSED);
+        setHasFinished(true);
     }
 
     @Override

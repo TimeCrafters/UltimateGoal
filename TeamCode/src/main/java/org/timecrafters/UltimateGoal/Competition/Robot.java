@@ -10,7 +10,6 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.qualcomm.hardware.bosch.BNO055IMU;
-import com.qualcomm.hardware.rev.Rev2mDistanceSensor;
 import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.hardware.rev.RevTouchSensor;
@@ -86,6 +85,7 @@ public class Robot {
     static final double FACE_MOMENTUM_MAX_CORRECTION = 1.1;
     static final double FACE_MOMENTUM_CORRECTION = 1.06;
     static final double FACE_MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(FACE_MOMENTUM_MAX_CORRECTION-1)/Math.log10(FACE_MOMENTUM_CORRECTION));
+    static final double ZERO_POWER_THRESHOLD = 0.25;
 
     //Unit Conversion Constants
     static final double ENCODER_CIRCUMFERENCE = Math.PI * 2.3622;
@@ -432,18 +432,12 @@ public class Robot {
         locationY += yChange;
 
         Robot.rotation += rotationChange;
-
+        Robot.rotation = scaleAngleRange(Robot.rotation);
 
         totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) + Math.abs(encoderBackChange);
-
-        if (Robot.rotation > 180) {
-            Robot.rotation -= 360;
-        }
-        if (Robot.rotation < -180) {
-            Robot.rotation += 360;
-        }
-
     }
+
+
 
     public void syncIfStationary() {
         if (totalV < minCheckVelocity) {
@@ -551,16 +545,7 @@ public class Robot {
     //to the right (clockwise) of the current. Negative angles indicate that the reference is to the
     //left.
     public float getRelativeAngle(float reference, float current) {
-        float relative = current - reference;
-
-        if (relative < -180) {
-            relative += 360;
-        }
-
-        if (relative > 180) {
-            relative -= 360;
-        }
-        return relative;
+        return scaleAngleRange(current - reference);
     }
 
     //Drive Functions
@@ -628,6 +613,15 @@ public class Robot {
 
         double[] powers = {powerForwardLeft, powerForwardRight, powerBackLeft, powerBackRight};
 
+        double totalPower = Math.abs(powerForwardLeft) +
+                Math.abs(powerForwardRight) +
+                Math.abs(powerBackLeft) +
+                Math.abs(powerBackRight);
+        if (totalPower < ZERO_POWER_THRESHOLD) {
+            powers = new double[] {0,0,0,0};
+        }
+
+
         return powers;
     }
 
@@ -635,7 +629,8 @@ public class Robot {
     public double[] getFacePowers(float direction, double power) {
         angularVelocity = imu.getAngularVelocity().xRotationRate;
         double relativeAngle = getRelativeAngle(direction, Robot.rotation);
-        double scaler = Math.pow(FACE_CUBIC_CORRECTION * relativeAngle, 3) + FACE_LINEAR_CORRECTION * relativeAngle;
+        double scaler = Math.pow(FACE_CUBIC_CORRECTION * relativeAngle, 3) +
+                FACE_LINEAR_CORRECTION * relativeAngle;
 
         if (relativeAngle > 0.5) {
             scaler += FACE_MIN_CORRECTION;
@@ -645,7 +640,8 @@ public class Robot {
 
         if (relativeAngle != 0) {
             double momentumRelative =  angularVelocity * (relativeAngle / Math.abs(relativeAngle));
-            double exponential = Math.pow(FACE_MOMENTUM_CORRECTION, FACE_MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
+            double exponential = Math.pow(FACE_MOMENTUM_CORRECTION,
+                    FACE_MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
             double momentumCorrection = (MOMENTUM_MAX_CORRECTION*exponential)/(1+exponential);
 
             scaler *= momentumCorrection;
@@ -655,6 +651,12 @@ public class Robot {
         double right = power *scaler;
 
         double[] powers = {left,right};
+
+        double totalPower = 2 * (Math.abs(left) + Math.abs(right));
+        if (totalPower < ZERO_POWER_THRESHOLD) {
+            powers = new double[] {0,0};
+        }
+
         return powers;
     }
 
@@ -663,6 +665,16 @@ public class Robot {
         boolean notMoved = (ringBeltPos - ringBeltPrev <= beltMaxStopTicks);
         ringBeltPrev = ringBeltPos;
         return notMoved;
+    }
+
+    public float scaleAngleRange(float angle) {
+        if (angle < -180) {
+            angle += 360;
+        }
+        if (angle > 180) {
+            angle -= 360;
+        }
+        return angle;
     }
 
     public void record(String record) {
