@@ -4,10 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Robot;
-import org.timecrafters.UltimateGoal.Competition.TeleOp.TeleOpState;
 
-@TeleOp (name = "Demo: Game",group = "demo")
-public class DemoEngine extends CyberarmEngine {
+@TeleOp (name = "Demo: Tank",group = "demo")
+public class DemoEngineTank extends CyberarmEngine {
 
     private Robot robot;
 
@@ -22,7 +21,7 @@ public class DemoEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        addState(new DemoState(robot));
+        addState(new DemoStateTank(robot));
     }
 
     @Override

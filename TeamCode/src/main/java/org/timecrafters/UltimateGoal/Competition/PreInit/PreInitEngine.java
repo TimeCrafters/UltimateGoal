@@ -1,10 +1,11 @@
 package org.timecrafters.UltimateGoal.Competition.PreInit;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Robot;
-
+@Disabled
 @Autonomous (name = "Load Rings")
 public class PreInitEngine extends CyberarmEngine {
 

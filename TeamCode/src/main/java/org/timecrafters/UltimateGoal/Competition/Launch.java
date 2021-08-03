@@ -1,6 +1,10 @@
 package org.timecrafters.UltimateGoal.Competition;
 
-import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
+/*
+The Launch state is used in teleOp and Autonomous. In addition to launching any rings by cycling the
+ring belt, this state returns the ring belt to the starting position
+*/
+
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.cyberarm.engine.V2.CyberarmState;
@@ -45,10 +49,7 @@ public class Launch extends CyberarmState {
 
     @Override
     public void exec() {
-        //detect when limit switch is initially triggered
-        boolean detectingPass = robot.limitSwitch.isPressed();
-        int beltPos = robot.ringBeltMotor.getCurrentPosition();
-
+        //jam counter measures
         if (robot.beltIsStuck() && childrenHaveFinished()) {
             long currentTime = System.currentTimeMillis();
             if (stuckStartTime == 0) {
@@ -60,6 +61,9 @@ public class Launch extends CyberarmState {
             stuckStartTime = 0;
         }
 
+        //detect when limit switch is initially triggered
+        boolean detectingPass = robot.limitSwitch.isPressed();
+        int beltPos = robot.ringBeltMotor.getCurrentPosition();
         if (detectingPass && !detectedPass) {
             //finish once the ring belt has cycled all the way through and then returned to
             //the first receiving position.

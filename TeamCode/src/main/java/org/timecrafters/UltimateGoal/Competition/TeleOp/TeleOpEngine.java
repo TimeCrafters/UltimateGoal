@@ -1,12 +1,13 @@
 package org.timecrafters.UltimateGoal.Competition.TeleOp;
 
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Autonomous.DriveToCoordinates;
 import org.timecrafters.UltimateGoal.Competition.Autonomous.Face;
 import org.timecrafters.UltimateGoal.Competition.Robot;
-
+@Disabled
 @TeleOp (name = "TeleOp",group = "comp")
 public class TeleOpEngine extends CyberarmEngine {
 

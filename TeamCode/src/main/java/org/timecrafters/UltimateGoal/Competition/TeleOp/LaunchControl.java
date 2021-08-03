@@ -17,7 +17,6 @@ public class LaunchControl extends CyberarmState {
 
     @Override
     public void start() {
-        robot.launchMotor.setPower(Robot.LAUNCH_POWER);
 
         if (robot.ringBeltStage > 2) {
             if (robot.ringBeltStage > 4) {

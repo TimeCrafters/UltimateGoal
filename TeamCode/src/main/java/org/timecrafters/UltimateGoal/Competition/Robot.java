@@ -1,4 +1,4 @@
-package org.timecrafters.UltimateGoal.Competition;
+ package org.timecrafters.UltimateGoal.Competition;
 
 /*
 The robot object contains all the hardware and functions that are used in both teleOp and
@@ -14,6 +14,7 @@ import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.hardware.rev.RevTouchSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -53,7 +54,8 @@ public class Robot {
     }
 
     //The TimeCraftersConfiguration is part of a debugging and tuning tool that allows us to edit
-    //variables saved on the phone, without having to re-download the whole program.
+    //variables saved on the phone, without having to re-download the whole program. This is
+    //especially useful for autonomous route tuning
     public TimeCraftersConfiguration stateConfiguration = new TimeCraftersConfiguration();
 
     //We use the IMU to get reliable rotation and angular velocity information. Experimentation has
@@ -74,6 +76,12 @@ public class Robot {
     public DcMotor encoderBack;
 
     //Motion Constants
+
+    //related graphs
+    //https://www.desmos.com/calculator/gndnkjndu9
+    //https://www.desmos.com/calculator/w0rebnftvg
+    //https://www.desmos.com/calculator/qxa1rq8hrv
+
     static final double CUBIC_CORRECTION = 0.035;
     static final double FACE_CUBIC_CORRECTION = 0.025;
     static final double LINEAR_CORRECTION = 0.055;
@@ -81,10 +89,12 @@ public class Robot {
     static final double FACE_LINEAR_CORRECTION = 0.025;
     static final double MOMENTUM_CORRECTION = 1.05;
     static final double MOMENTUM_MAX_CORRECTION = 1.4;
-    static final double MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(MOMENTUM_MAX_CORRECTION-1)/Math.log10(MOMENTUM_CORRECTION));
+    static final double MOMENTUM_HORIZONTAL_CORRECTION =
+            -(Math.log10(MOMENTUM_MAX_CORRECTION-1) / Math.log10(MOMENTUM_CORRECTION));
     static final double FACE_MOMENTUM_MAX_CORRECTION = 1.1;
     static final double FACE_MOMENTUM_CORRECTION = 1.06;
-    static final double FACE_MOMENTUM_HORIZONTAL_CORRECTION = -(Math.log10(FACE_MOMENTUM_MAX_CORRECTION-1)/Math.log10(FACE_MOMENTUM_CORRECTION));
+    static final double FACE_MOMENTUM_HORIZONTAL_CORRECTION =
+            -(Math.log10(FACE_MOMENTUM_MAX_CORRECTION-1) / Math.log10(FACE_MOMENTUM_CORRECTION));
     static final double ZERO_POWER_THRESHOLD = 0.25;
 
     //Unit Conversion Constants
@@ -107,7 +117,7 @@ public class Robot {
     private float rotationPrevious = 0;
     public float angularVelocity;
 
-    //vuforia navigation
+    //vuforia && tensorFlow Stuff
     private WebcamName webcam;
     private VuforiaLocalizer vuforia;
 
@@ -118,8 +128,10 @@ public class Robot {
     // Inches Left of axis of rotation
     static final float CAMERA_LEFT_DISPLACEMENT = 4f;
 
-    static final double CAMERA_DISPLACEMENT_MAG = Math.hypot(CAMERA_FORWARD_DISPLACEMENT,CAMERA_LEFT_DISPLACEMENT);
-    static final float CAMERA_DISPLACEMENT_DIRECTION = (float) -Math.atan(CAMERA_LEFT_DISPLACEMENT/CAMERA_FORWARD_DISPLACEMENT);
+    static final double CAMERA_DISPLACEMENT_MAG =
+            Math.hypot(CAMERA_FORWARD_DISPLACEMENT,CAMERA_LEFT_DISPLACEMENT);
+    static final float CAMERA_DISPLACEMENT_DIRECTION =
+            (float) -Math.atan(CAMERA_LEFT_DISPLACEMENT/CAMERA_FORWARD_DISPLACEMENT);
 
     public boolean trackableVisible;
     private VuforiaTrackables targetsUltimateGoal;
@@ -145,6 +157,7 @@ public class Robot {
     public static final double LAUNCH_POWER = 0.715;
 
     private static final long LAUNCH_ACCEL_TIME = 500;
+    //These variables were originally going to be used in both autonomous and teleOp
     public double launchPositionX;
     public double launchPositionY;
     public float launchRotation;
@@ -182,22 +195,17 @@ public class Robot {
 
     //Debugging
     public double totalV;
-    public double visionX;
-    public double visionY;
-    public double visionZ;
-    public float rawAngle;
-    private String TestingRecord = "x,y";
-
+    private String TestingRecord = "Raw IMU, Delta, Saved";
     public double forwardVector;
     public double sidewaysVector;
-
     public double traveledForward = 0;
-    public double traveledRight;
+    public DcMotorEx motorAmpsTest;
 
+    //All our hardware initialization in one place, for everything that is the same in TeleOp and
+    //Autonomous
     public void initHardware() {
 
-        limitSwitch = hardwareMap.get(RevTouchSensor.class, "magLim");
-
+        //drive motors
         driveFrontLeft = hardwareMap.dcMotor.get("driveFrontLeft");
         driveFrontRight = hardwareMap.dcMotor.get("driveFrontRight");
         driveBackLeft = hardwareMap.dcMotor.get("driveBackLeft");
@@ -226,9 +234,12 @@ public class Robot {
         wobbleArmMotor.setTargetPosition(0);
         wobbleArmMotor.setMode(DcMotor.RunMode.RUN_TO_POSITION);
 
-        wobbleUpPos = stateConfiguration.variable("system","arm", "up").value();
-        wobbleDownPos = stateConfiguration.variable("system","arm", "down").value();
-        wobbleDropPos = stateConfiguration.variable("system","arm", "drop").value();
+        wobbleUpPos = stateConfiguration.variable(
+                "system","arm", "up").value();
+        wobbleDownPos = stateConfiguration.variable(
+                "system","arm", "down").value();
+        wobbleDropPos = stateConfiguration.variable(
+                "system","arm", "drop").value();
 
         wobbleGrabServo = hardwareMap.servo.get("wobbleGrab");
 
@@ -236,7 +247,7 @@ public class Robot {
         wobbleTouchSensor = hardwareMap.get(RevTouchSensor.class, "touch");
 
 
-        //init ring belt
+        //init collection motor
         collectionMotor = hardwareMap.dcMotor.get("collect");
         collectionMotor.setDirection(DcMotorSimple.Direction.REVERSE);
 
@@ -244,10 +255,17 @@ public class Robot {
         ringBeltMotor = hardwareMap.dcMotor.get("belt");
         ringBeltMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         ringBeltMotor .setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-        beltMaxStopTime = stateConfiguration.variable("system","belt", "maxStopTime").value();
-        beltMaxStopTicks = stateConfiguration.variable("system","belt", "maxStopTicks").value();
-        beltReverseTicks = stateConfiguration.variable("system","belt", "reverseTicks").value();
-        ringBeltGap = stateConfiguration.variable("system","belt","gap").value();
+
+        limitSwitch = hardwareMap.get(RevTouchSensor.class, "magLim");
+
+        beltMaxStopTime = stateConfiguration.variable(
+                "system","belt", "maxStopTime").value();
+        beltMaxStopTicks = stateConfiguration.variable(
+                "system","belt", "maxStopTicks").value();
+        beltReverseTicks = stateConfiguration.variable(
+                "system","belt", "reverseTicks").value();
+        ringBeltGap = stateConfiguration.variable(
+                "system","belt","gap").value();
 
         //init IMU
         imu  = hardwareMap.get(BNO055IMU.class, "imu");
@@ -279,9 +297,12 @@ public class Robot {
         webCamServo = hardwareMap.servo.get("look");
         webCamServo.setDirection(Servo.Direction.REVERSE );
 
-        minCheckVelocity =stateConfiguration.variable("system", "camera", "minCheckV").value();
-        vuforiaRotationCull = stateConfiguration.variable("system", "camera", "rCull").value();
-        minCheckDurationMs =stateConfiguration.variable("system", "camera", "minCheckMS").value();
+        minCheckVelocity =stateConfiguration.variable(
+                "system", "camera", "minCheckV").value();
+        vuforiaRotationCull = stateConfiguration.variable(
+                "system", "camera", "rCull").value();
+        minCheckDurationMs =stateConfiguration.variable(
+                "system", "camera", "minCheckMS").value();
 
         //Init Launch Motor
         DcMotor launcher = hardwareMap.dcMotor.get("launcher");
@@ -296,8 +317,12 @@ public class Robot {
         launchMotor.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
         launchMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        initLauncher = stateConfiguration.action("system","initLauncher").enabled;
-        reduceLaunchPos = stateConfiguration.variable("system", "launchPos", "reducePower").value();
+        //This is a debugging option that automatically turns on the launch wheel during init.
+        //This can be disabled using a variable in the TimeCraftersConfiguration
+        initLauncher = stateConfiguration.action(
+                "system","initLauncher").enabled;
+        reduceLaunchPos = stateConfiguration.variable(
+                "system", "launchPos", "reducePower").value();
 
         if (initLauncher) {
             double launcherPower = 0;
@@ -307,10 +332,13 @@ public class Robot {
                 launchMotor.setPower(launcherPower);
             }
         }
-        //
-        launchPositionX = inchesToTicks((double) stateConfiguration.variable("system", "launchPos","x").value());
-        launchPositionY = inchesToTicks((double) stateConfiguration.variable("system", "launchPos","y").value());
-        launchRotation = stateConfiguration.variable("system", "launchPos","rot").value();
+
+        launchPositionX = inchesToTicks((double) stateConfiguration.variable(
+                "system", "launchPos","x").value());
+        launchPositionY = inchesToTicks((double) stateConfiguration.variable(
+                "system", "launchPos","y").value());
+        launchRotation = stateConfiguration.variable(
+                "system", "launchPos","rot").value();
 
         initTensorFlow();
 
@@ -319,8 +347,10 @@ public class Robot {
 
     private void initVuforia() {
 
-        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier("cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
-        VuforiaLocalizer.Parameters parameters = new VuforiaLocalizer.Parameters(cameraMonitorViewId);
+        int cameraMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
+                "cameraMonitorViewId", "id", hardwareMap.appContext.getPackageName());
+        VuforiaLocalizer.Parameters parameters =
+                new VuforiaLocalizer.Parameters(cameraMonitorViewId);
 
         parameters.vuforiaLicenseKey = "Abmu1jv/////AAABmYzrcgDEi014nv+wD6PkEPVnOlV2pI3S9sGUMMR/X7hF72x20rP1JcVtsU0nI6VK0yUlYbCSA2k+yMo4hQmPDBvrqeqAgXKa57ilPhW5e1cB3BEevP+9VoJ9QYFhKA3JJTiuFS50WQeuFy3dp0gOPoqHL3XClRFZWbhzihyNnLXgXlKiq+i5GbfONECucQU2DgiuuxYlCaeNdUHl1X5C2pO80zZ6y7PYAp3p0ciXJxqfBoVAklhd69avaAE5Z84ctKscvcbxCS16lq81X7XgIFjshLoD/vpWa300llDG83+Y777q7b5v7gsUCZ6FiuK152Rd272HLuBRhoTXAt0ug9Baq5cz3sn0sAIEzSHX1nah";
         parameters.cameraName = webcam;
@@ -346,20 +376,27 @@ public class Robot {
 
         redAllianceTarget.setLocation(OpenGLMatrix
                 .translation(0, -halfField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, 180)));
+                .multiplied(Orientation.getRotationMatrix(
+                        EXTRINSIC, XYZ, DEGREES, 90, 0, 180)));
         frontWallTarget.setLocation(OpenGLMatrix
                 .translation(-halfField, 0, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0 , 90)));
+                .multiplied(Orientation.getRotationMatrix(
+                        EXTRINSIC, XYZ, DEGREES, 90, 0 , 90)));
         redTowerGoalTarget.setLocation(OpenGLMatrix
                 .translation(halfField, -quadField, mmTargetHeight)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
+                .multiplied(Orientation.getRotationMatrix(
+                        EXTRINSIC, XYZ, DEGREES, 90, 0, -90)));
 
         OpenGLMatrix robotFromCamera = OpenGLMatrix
-                .translation(CAMERA_FORWARD_DISPLACEMENT * mmPerInch, CAMERA_LEFT_DISPLACEMENT * mmPerInch, CAMERA_VERTICAL_DISPLACEMENT * mmPerInch)
-                .multiplied(Orientation.getRotationMatrix(EXTRINSIC, YZX, DEGREES, -90, 0, 0));
+                .translation(CAMERA_FORWARD_DISPLACEMENT * mmPerInch,
+                        CAMERA_LEFT_DISPLACEMENT * mmPerInch,
+                        CAMERA_VERTICAL_DISPLACEMENT * mmPerInch)
+                .multiplied(Orientation.getRotationMatrix(
+                        EXTRINSIC, YZX, DEGREES, -90, 0, 0));
 
         for (VuforiaTrackable trackable : trackables) {
-            ((VuforiaTrackableDefaultListener) trackable.getListener()).setPhoneInformation(robotFromCamera, parameters.cameraDirection);
+            ((VuforiaTrackableDefaultListener) trackable.getListener())
+                    .setPhoneInformation(robotFromCamera, parameters.cameraDirection);
         }
 
         targetsUltimateGoal.activate();
@@ -373,11 +410,15 @@ public class Robot {
         int tfodMonitorViewId = hardwareMap.appContext.getResources().getIdentifier(
                 "tfodMonitorViewId", "id", hardwareMap.appContext.getPackageName());
         TFObjectDetector.Parameters parameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
-        parameters.minResultConfidence = stateConfiguration.variable("system", "camera", "minConfidence").value();
+        parameters.minResultConfidence = stateConfiguration.variable(
+                "system", "camera", "minConfidence").value();
         tfObjectDetector = ClassFactory.getInstance().createTFObjectDetector(parameters, vuforia);
-        tfObjectDetector.loadModelFromAsset("UltimateGoal.tflite", "Quad", "Single");
+        tfObjectDetector.loadModelFromAsset(
+                "UltimateGoal.tflite", "Quad", "Single");
     }
 
+    //Localization Function! This function is represented in a flow diagram, earlier in the
+    //software section
     //run this in every exec to track the robot's location.
     public void updateLocation(){
 
@@ -417,13 +458,15 @@ public class Robot {
             ticksPerDegreeForward = TICKS_PER_ROBOT_DEGREE_CLOCKWISE_FORWARD;
         }
 
-        forwardVector = ((encoderLeftChange+encoderRightChange)/2) -  (rotationChange* ticksPerDegreeForward);
+        forwardVector = ((encoderLeftChange+encoderRightChange)/2) -
+                (rotationChange* ticksPerDegreeForward);
 
         traveledForward += forwardVector;
         sidewaysVector = encoderBackChange + (rotationChange * ticksPerDegreeSideways);
 
         double magnitude = Math.sqrt((forwardVector*forwardVector) + (sidewaysVector*sidewaysVector));
-        double direction = Math.toRadians(Robot.rotation + (rotationChange/2)) + Math.atan2(sidewaysVector,forwardVector);
+        double direction = Math.toRadians(Robot.rotation + (rotationChange/2)) +
+                Math.atan2(sidewaysVector,forwardVector);
 
         double xChange = magnitude * (Math.sin(direction));
         double yChange = magnitude * (Math.cos(direction));
@@ -434,11 +477,15 @@ public class Robot {
         Robot.rotation += rotationChange;
         Robot.rotation = scaleAngleRange(Robot.rotation);
 
-        totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) + Math.abs(encoderBackChange);
+        totalV = Math.abs(encoderLeftChange) + Math.abs(encoderRightChange) +
+                Math.abs(encoderBackChange);
+
+//        record(""+System.currentTimeMillis()+", "+imuAngle);
     }
 
-
-
+    //Experimentation has demonstrated that Vuforia dosen't provide good data while the camera
+    //is moving or rotating. This function detects if conditions are appropriate to run vuforia and
+    //get more accurate results
     public void syncIfStationary() {
         if (totalV < minCheckVelocity) {
             long timeCurrent = System.currentTimeMillis();
@@ -459,7 +506,9 @@ public class Robot {
         trackableVisible = false;
         for (VuforiaTrackable trackable : trackables) {
             if (((VuforiaTrackableDefaultListener)trackable.getListener()).isVisible()) {
-                OpenGLMatrix robotLocation = ((VuforiaTrackableDefaultListener)trackable.getListener()).getUpdatedRobotLocation();
+                OpenGLMatrix robotLocation =
+                        ((VuforiaTrackableDefaultListener)trackable.getListener())
+                                .getUpdatedRobotLocation();
 
                 //this is used for debugging purposes.
                 trackableVisible = true;
@@ -470,7 +519,8 @@ public class Robot {
 
                 //For our tournament, it makes sense to make zero degrees towards the goal.
                 //Orientation is inverted to have clockwise be positive.
-                Orientation orientation = Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
+                Orientation orientation =
+                        Orientation.getOrientation(lastConfirmendLocation, EXTRINSIC, XYZ, DEGREES);
                 float vuforiaRotation = 90-orientation.thirdAngle;
 
                 if (vuforiaRotation > 180) {
@@ -484,8 +534,10 @@ public class Robot {
                     double camX = -translation.get(1) / mmPerInch;
                     double camY = translation.get(0) / mmPerInch;
 
-                    double displaceX = CAMERA_DISPLACEMENT_MAG * Math.sin(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
-                    double displaceY = CAMERA_DISPLACEMENT_MAG * Math.cos(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+                    double displaceX = CAMERA_DISPLACEMENT_MAG *
+                            Math.sin(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
+                    double displaceY = CAMERA_DISPLACEMENT_MAG *
+                            Math.cos(Robot.rotation + 180 - CAMERA_DISPLACEMENT_DIRECTION);
 
                     locationX = inchesToTicks(camX - displaceX);
                     locationY = inchesToTicks(camY - displaceY);
@@ -508,18 +560,13 @@ public class Robot {
         return Robot.locationY;
     }
 
+    //This is meant to only be used to indicate starting positions and to reorient the robot.
     public void setLocalization(float rotation, double x, double y) {
         Robot.rotation = rotation;
         Robot.locationX = x;
         Robot.locationY = y;
     }
 
-    //Manually set the position of the robot on the field.
-    public void setCurrentPosition(float rotation, double x, double y) {
-        Robot.rotation = rotation;
-        Robot.locationX = x;
-        Robot.locationY = y;
-    }
 
     //returns the angle from the robot's current position to the given target position.
     public float getAngleToPosition (double x, double y) {
@@ -531,7 +578,7 @@ public class Robot {
 
     }
 
-    //Unit conversion
+    //Unit conversions
     public double ticksToInches(double ticks) {
         return ticks * (ENCODER_CIRCUMFERENCE / COUNTS_PER_REVOLUTION);
     }
@@ -541,26 +588,28 @@ public class Robot {
 
     }
 
-    //Returns the angle between two angles, with positive angles indicating that the reference is
-    //to the right (clockwise) of the current. Negative angles indicate that the reference is to the
-    //left.
+    //Returns the shortest angle between two directions, with positive angles indicating that the
+    // reference is to the right (clockwise) of the current. Negative angles indicate that the
+    // reference is to the left.
     public float getRelativeAngle(float reference, float current) {
         return scaleAngleRange(current - reference);
     }
 
     //Drive Functions
-    public void setDrivePower(double powerFrontLeft, double powerFrontRight, double powerBackLeft, double powerBackRight){
+    public void setDrivePower(double powerFrontLeft, double powerFrontRight,
+                              double powerBackLeft, double powerBackRight){
         driveFrontLeft.setPower(powerFrontLeft);
         driveFrontRight.setPower(powerFrontRight);
         driveBackLeft.setPower(powerBackLeft);
         driveBackRight.setPower(powerBackRight);
     }
 
-    //returns an array of the powers necessary to execute the provided motion. "degreesDirectionMotion"
-    //is the angle relative to the field that the robot should drive at. "degreesDirectionFace" is
-    //the angle the robot should face relative to the field. The order of the output powers is
-    //is ForwardLeft, ForwardRight, BackLeft, BackRight
-    public double[] getMecanumPowers(float degreesDirectionMotion, double scalar, float degreesDirectionFace) {
+    //returns an array of the powers necessary to execute the provided motion.
+    //"degreesDirectionMotion" is the angle relative to the field that the robot should drive at.
+    //"degreesDirectionFace" is the angle the robot should face relative to the field. The order of
+    //the output powers is ForwardLeft, ForwardRight, BackLeft, BackRight
+    public double[] getMecanumPowers(float degreesDirectionMotion, double scalar,
+                                     float degreesDirectionFace) {
         angularVelocity = imu.getAngularVelocity().xRotationRate;
 
         //calculating the base mecanum powers so that the robot drives along the degreesDirectionMotion
@@ -582,12 +631,14 @@ public class Robot {
                         LINEAR_CORRECTION * relativeRotation;
 
         if (relativeRotation != 0) {
-            double momentumRelative =  angularVelocity * (relativeRotation / Math.abs(relativeRotation));
-            double exponential = Math.pow(MOMENTUM_CORRECTION, MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
+            double momentumRelative =  angularVelocity *
+                    (relativeRotation / Math.abs(relativeRotation));
+            double exponential =
+                    Math.pow(MOMENTUM_CORRECTION, MOMENTUM_HORIZONTAL_CORRECTION-momentumRelative);
             double momentumCorrection = (MOMENTUM_MAX_CORRECTION*exponential)/(1+exponential);
             //reduces concern for  momentum when the angle is far away from target
-            turnCorrection *= momentumCorrection + ((Math.abs(relativeRotation) * (1  - momentumCorrection)) / 180 );
-//            turnCorrection *= momentumCorrection;
+            turnCorrection *= momentumCorrection + ((Math.abs(relativeRotation) *
+                    (1  - momentumCorrection)) / 180 );
         }
 
         double powerForwardRight = scalar * (q + turnCorrection);
@@ -660,6 +711,7 @@ public class Robot {
         return powers;
     }
 
+    //Used to for automated jam countermeasures
     public boolean beltIsStuck() {
         int ringBeltPos = ringBeltMotor.getCurrentPosition();
         boolean notMoved = (ringBeltPos - ringBeltPrev <= beltMaxStopTicks);
@@ -677,6 +729,7 @@ public class Robot {
         return angle;
     }
 
+    //Debugging tools
     public void record(String record) {
         TestingRecord+="\n"+record;
     }

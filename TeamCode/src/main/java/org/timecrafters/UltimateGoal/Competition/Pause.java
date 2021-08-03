@@ -16,7 +16,7 @@ public class Pause extends CyberarmState {
         this.actionName = actionName;
     }
 
-    public Pause(Robot robot, boolean open, long waitTime) {
+    public Pause(Robot robot,  long waitTime) {
         this.robot = robot;
         this.waitTime = waitTime;
     }

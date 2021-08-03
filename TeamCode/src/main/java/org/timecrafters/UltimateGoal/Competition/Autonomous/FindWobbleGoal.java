@@ -1,5 +1,9 @@
 package org.timecrafters.UltimateGoal.Competition.Autonomous;
 
+/*
+The FindWobbleGoal state is used in teleOp and Autonomous to aid in capturing the wobble goal.
+*/
+
 import org.cyberarm.engine.V2.CyberarmState;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.timecrafters.UltimateGoal.Competition.Robot;
@@ -47,6 +51,7 @@ public class FindWobbleGoal extends CyberarmState {
         robot.updateLocation();
         double sensorValue = robot.wobbleColorSensor.getDistance(DistanceUnit.MM);
 
+        //Stage 1: scan back and forth untile the sensor is in line with the wobble goal.
         if (sensorValue > turnCheck) {
 
             float rotation = robot.getRelativeAngle(startRotation,robot.getRotation());
@@ -65,18 +70,23 @@ public class FindWobbleGoal extends CyberarmState {
             ccCheckPrev = ccCheck;
 
         } else {
+            //Stage 2: drive toward wobble goal until it's close enough to grab
              if (sensorValue > driveCheck) {
                  if (!foundGoalRotation) {
                      foundGoalRotation = true;
                      wobbleGoalRotation = robot.getRotation();
                  }
-                 double[] powers = robot.getMecanumPowers(wobbleGoalRotation - 90, power*2 , wobbleGoalRotation);
+                 double[] powers = robot.getMecanumPowers(
+                         wobbleGoalRotation - 90,
+                         power*2 , wobbleGoalRotation);
                  robot.setDrivePower(powers[0],powers[1],powers[2],powers[3]);
              } else {
+                 //stage 3: grab the wobble goal && finish the state
                  endSearch();
              }
         }
 
+        //if the search takes too long, the robot grabs and finishes the state
         if (runTime() > timeLimit) {
             endSearch();
         }

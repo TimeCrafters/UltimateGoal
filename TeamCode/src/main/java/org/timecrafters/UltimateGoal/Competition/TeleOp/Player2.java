@@ -1,9 +1,15 @@
 package org.timecrafters.UltimateGoal.Competition.TeleOp;
 
+/*
+The Player2 state has all the controls for player two. This includes a lot of automation and
+emergency features, for if the driver wants to take control unexpectedly
+*/
+
 import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 
 import org.cyberarm.engine.V2.CyberarmState;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
 import org.timecrafters.UltimateGoal.Competition.Launch;
 import org.timecrafters.UltimateGoal.Competition.ProgressRingBelt;
 import org.timecrafters.UltimateGoal.Competition.Robot;
@@ -22,6 +28,7 @@ public class Player2 extends CyberarmState {
     private DcMotor.RunMode runModePrev;
     private boolean lbPrev;
     private boolean manualArmHold;
+    private int loops = 0;
 
 
 
@@ -45,9 +52,10 @@ public class Player2 extends CyberarmState {
 
     @Override
     public void exec() {
+//        loops+=1;
+//        robot.record(""+runTime()+", "+loops+", "+robot.getRotation());
 
         //Collector control
-
         double rt = engine.gamepad2.right_trigger;
         double lt = engine.gamepad2.left_trigger;
         if (rt < lt) {
@@ -58,6 +66,8 @@ public class Player2 extends CyberarmState {
             robot.collectionMotor.setPower(0);
         }
 
+        //The childrenHaveFinished() method tracks if there are parallel states that are still
+        //running.
         if (childrenHaveFinished()) {
             //belt progression control
             boolean rb = engine.gamepad2.right_bumper;
@@ -140,16 +150,23 @@ public class Player2 extends CyberarmState {
         }
         lbPrev = lb;
 
-//        if (engine.gamepad1.y) {
-//            setHasFinished(true);
-//        }
+        if (engine.gamepad2.back) {
+            for (CyberarmState state : children) {
+                engine.stopState(state);
+            }
+        }
+
     }
 
+
+    //This just checks if the wobble arm runmode is already the desired mode before setting it.
+    //I don't know if this is actually helpful
     private void setArmMode(DcMotor.RunMode runMode) {
         if (robot.wobbleArmMotor.getMode() != runMode) {
              robot.wobbleArmMotor.setMode(runMode);
         }
     }
+
 
     @Override
     public void telemetry() {
@@ -157,16 +174,16 @@ public class Player2 extends CyberarmState {
 //        engine.telemetry.addData("power", robot.ringBeltMotor.getPower());
 //        engine.telemetry.addData("pos", robot.ringBeltMotor.getCurrentPosition());
 //        engine.telemetry.addData("target", robot.ringBeltMotor.getTargetPosition());
-
+//
 //        engine.telemetry.addData("ring belt stage", robot.ringBeltStage);
 //        engine.telemetry.addData("Touch Sensor Pressed", robot.wobbleTouchSensor.isPressed());
 //        engine.telemetry.addData("  Sensor value", robot.wobbleTouchSensor.getValue());
-//        engine.telemetry.addData("Player 2 children", childrenHaveFinished());
-//        for (CyberarmState state : children) {
-//            if (!state.getHasFinished()) {
-//                engine.telemetry.addLine("" + state.getClass());
-//            }
-//        }
+        engine.telemetry.addData("Player 2 children", childrenHaveFinished());
+        for (CyberarmState state : children) {
+            if (!state.getHasFinished()) {
+                engine.telemetry.addLine("" + state.getClass());
+            }
+        }
     }
 
 }

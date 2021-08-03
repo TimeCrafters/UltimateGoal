@@ -150,7 +150,7 @@ public abstract class CyberarmEngine extends OpMode {
    * Recursively stop states
    * @param state State to stop
    */
-  private void stopState(CyberarmState state) {
+  public void stopState(CyberarmState state) {
     state.setHasFinished(true);
     state.stop();
 
