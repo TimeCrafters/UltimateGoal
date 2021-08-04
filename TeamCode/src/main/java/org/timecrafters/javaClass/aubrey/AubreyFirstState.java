@@ -20,8 +20,8 @@ public class AubreyFirstState extends CyberarmState {
     //This one is set up to repeat every few milliseconds
     @Override
     public void exec() {
-        UwU= engine.gamepad1.left_stick_y ;
-        OwO= engine.gamepad1. right_stick_y;
+        UwU= -engine.gamepad1.left_stick_y ;
+        OwO= -engine.gamepad1. right_stick_y;
         robot.driveBackLeft.setPower(UwU);
 
         robot.driveFrontLeft.setPower(UwU);
