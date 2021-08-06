@@ -7,6 +7,9 @@ public class AubreyFirstState extends CyberarmState {
 
     //here, you'll find some of your variables. you can add more as you need them.
     private SampleRobot robot;
+    private double UwU;
+    private double OwO;
+
 
     //This is the constructor. It lets other code bits run use the code you put here
     public AubreyFirstState(SampleRobot robot) {
@@ -17,6 +20,30 @@ public class AubreyFirstState extends CyberarmState {
     //This one is set up to repeat every few milliseconds
     @Override
     public void exec() {
-        
+        UwU= -engine.gamepad1.left_stick_y ;
+        OwO= -engine.gamepad1. right_stick_y;
+        robot.driveBackLeft.setPower(UwU);
+        if(robot. limitSwitch. isPressed()) {
+            double power = .5;
+            robot.driveFrontLeft.setPower(-power);
+            robot.driveFrontRight.setPower(power);
+            robot.driveBackLeft.setPower(-power);
+            robot.driveBackRight.setPower(power);
+
+
+        }else {
+            robot.driveFrontLeft.setPower(UwU);
+            robot.driveBackRight. setPower(OwO);
+            robot.driveBackLeft. setPower(OwO);
+        }
+
+
+    }
+
+    @Override
+    public void telemetry() {
+        engine. telemetry.addData("uMu",UwU);
+        engine. telemetry. addData("OmO", OwO);
+
     }
 }
