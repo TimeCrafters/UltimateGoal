@@ -25,6 +25,14 @@ public class CaydenFirstState extends CyberarmState {
             robot.collectionMotor.setPower(0);
         }
 
+        if(engine.gamepad1.b){
+            robot.ringBeltMotor.setPower(.75);
+        }
+        else{
+            robot.ringBeltMotor.setPower(0);
+        }
+
+
         robot.driveFrontRight.setPower(-engine.gamepad1.right_stick_y);
         robot.driveBackRight.setPower(-engine.gamepad1.right_stick_y);
         robot.driveFrontLeft.setPower(-engine.gamepad1.left_stick_y);
