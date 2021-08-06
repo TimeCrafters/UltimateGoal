@@ -17,10 +17,31 @@ public class CaydenFirstState extends CyberarmState {
     //This one is set up to repeat every few milliseconds
     @Override
     public void exec() {
-        robot.launchMotor.setPower(engine.gamepad1.left_stick_y);
-        robot.ringBeltMotor.setPower(engine.gamepad1.right_trigger
-        );
-        if (robot.limitSwitch.isPressed()) {
+
+        if (engine.gamepad1.y){
+            robot.collectionMotor.setPower(.5);
+        }
+        else{
+            robot.collectionMotor.setPower(0);
+        }
+
+        if(engine.gamepad1.b){
+            robot.ringBeltMotor.setPower(.75);
+        }
+        else{
+            robot.ringBeltMotor.setPower(0);
+        }
+
+
+        robot.driveFrontRight.setPower(-engine.gamepad1.right_stick_y);
+        robot.driveBackRight.setPower(-engine.gamepad1.right_stick_y);
+        robot.driveFrontLeft.setPower(-engine.gamepad1.left_stick_y);
+        robot.driveBackLeft.setPower(-engine.gamepad1.right_stick_y);
+
+
+        robot.ringBeltMotor.setPower(engine.gamepad1.right_trigger);
+
+        if (robot.wobbleTouchSensor.isPressed()) {
             robot.launchMotor.setPower(0.5);
         }else{
             robot.launchMotor.setPower(0);
