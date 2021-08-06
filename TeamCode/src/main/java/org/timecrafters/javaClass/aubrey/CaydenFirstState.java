@@ -19,14 +19,14 @@ public class CaydenFirstState extends CyberarmState {
     public void exec() {
 
         if (engine.gamepad1.y){
-            robot.collectionMotor.setPower(.5);
+            robot.collectionMotor.setPower(1);
         }
         else{
             robot.collectionMotor.setPower(0);
         }
 
         if(engine.gamepad1.b){
-            robot.ringBeltMotor.setPower(.75);
+            robot.ringBeltMotor.setPower(.1);
         }
         else{
             robot.ringBeltMotor.setPower(0);
@@ -41,8 +41,8 @@ public class CaydenFirstState extends CyberarmState {
 
         robot.ringBeltMotor.setPower(engine.gamepad1.right_trigger);
 
-        if (robot.wobbleTouchSensor.isPressed()) {
-            robot.launchMotor.setPower(0.5);
+        if (engine.gamepad1.x){
+            robot.launchMotor.setPower(1);
         }else{
             robot.launchMotor.setPower(0);
         }
