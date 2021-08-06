@@ -14,7 +14,6 @@ public class SpencerDriveFoward extends CyberarmState {
 
     @Override
     public void exec() {
-        if ()
 
     }
 
