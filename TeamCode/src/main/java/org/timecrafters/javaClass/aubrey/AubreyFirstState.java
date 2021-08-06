@@ -33,7 +33,7 @@ public class AubreyFirstState extends CyberarmState {
         }else {
             robot.driveFrontLeft.setPower(UwU);
             robot.driveBackRight.setPower(OwO);
-            robot.driveBackLeft.setPower(OwO);
+            robot.driveBackRight.setPower(OwO);
             robot.driveBackLeft.setPower(UwU);
         }
 
