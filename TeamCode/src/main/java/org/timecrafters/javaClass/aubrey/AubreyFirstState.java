@@ -21,9 +21,8 @@ public class AubreyFirstState extends CyberarmState {
     @Override
     public void exec() {
         UwU= -engine.gamepad1.left_stick_y ;
-        OwO= -engine.gamepad1. right_stick_y;
-        robot.driveBackLeft.setPower(UwU);
-        if(robot. limitSwitch. isPressed()) {
+        OwO= -engine.gamepad1.right_stick_y;
+        if(robot.wobbleTouchSensor.isPressed()) {
             double power = .5;
             robot.driveFrontLeft.setPower(-power);
             robot.driveFrontRight.setPower(power);
@@ -33,8 +32,9 @@ public class AubreyFirstState extends CyberarmState {
 
         }else {
             robot.driveFrontLeft.setPower(UwU);
-            robot.driveBackRight. setPower(OwO);
-            robot.driveBackLeft. setPower(OwO);
+            robot.driveBackRight.setPower(OwO);
+            robot.driveBackLeft.setPower(OwO);
+            robot.driveBackLeft.setPower(UwU);
         }
 
 
