@@ -4,8 +4,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Robot;
-import org.timecrafters.javaClass.aubrey.CaydenFirstState;
-import org.timecrafters.javaClass.spencer.SpencerFirstState;
+import org.timecrafters.javaClass.cayden.CaydenFirstState;
 
 @Autonomous (name = "Cayden: First Program", group = "caden")
 public class CaydenFirstEngine extends CyberarmEngine {

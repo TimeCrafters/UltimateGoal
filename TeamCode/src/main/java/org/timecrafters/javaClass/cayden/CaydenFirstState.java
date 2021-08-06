@@ -1,4 +1,4 @@
-package org.timecrafters.javaClass.aubrey;
+package org.timecrafters.javaClass.cayden;
 
 import org.cyberarm.engine.V2.CyberarmState;
 import org.timecrafters.javaClass.samples.SampleRobot;
