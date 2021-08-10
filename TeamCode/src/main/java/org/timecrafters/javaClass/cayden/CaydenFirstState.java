@@ -40,13 +40,13 @@ public class CaydenFirstState extends CyberarmState {
 
         if (engine.gamepad1.left_bumper) {
             robot.driveFrontLeft.setPower(-1);
-            robot.driveFrontRight.setPower(-1);
-            robot.driveBackLeft.setPower(-1);
+            robot.driveFrontRight.setPower(1);
+            robot.driveBackLeft.setPower(1);
             robot.driveBackRight.setPower(-1);
         } else if (engine.gamepad1.right_bumper) {
             robot.driveFrontLeft.setPower(1);
-            robot.driveFrontRight.setPower(1);
-            robot.driveBackLeft.setPower(1);
+            robot.driveFrontRight.setPower(-1);
+            robot.driveBackLeft.setPower(-1);
             robot.driveBackRight.setPower(1);
         }
 
