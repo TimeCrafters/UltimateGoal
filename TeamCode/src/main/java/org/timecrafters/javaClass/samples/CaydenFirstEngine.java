@@ -9,11 +9,11 @@ import org.timecrafters.javaClass.cayden.CaydenFirstState;
 @Autonomous (name = "Cayden: First Program", group = "caden")
 public class CaydenFirstEngine extends CyberarmEngine {
     
-    SampleRobot robot;
+   Robot robot;
 
     @Override
     public void init() {
-        robot = new SampleRobot(hardwareMap);
+        robot = new Robot(hardwareMap);
         robot.initHardware();
         robot.wobbleGrabServo.setPosition(Robot.WOBBLE_SERVO_CLOSED);
         super.init();
