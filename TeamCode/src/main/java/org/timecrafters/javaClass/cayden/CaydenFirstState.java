@@ -1,15 +1,16 @@
 package org.timecrafters.javaClass.cayden;
 
 import org.cyberarm.engine.V2.CyberarmState;
+import org.timecrafters.UltimateGoal.Competition.Robot;
 import org.timecrafters.javaClass.samples.SampleRobot;
 
 public class CaydenFirstState extends CyberarmState {
 
     //here, you'll find some of your variables. you can add more as you need them.
-    private SampleRobot robot;
+    private Robot robot;
 
     //This is the constructor. It lets other code bits run use the code you put here
-    public CaydenFirstState(SampleRobot robot) {
+    public CaydenFirstState(Robot robot) {
         this.robot = robot;
     }
 
@@ -26,7 +27,7 @@ public class CaydenFirstState extends CyberarmState {
         }
 
         if(engine.gamepad1.b){
-            robot.ringBeltMotor.setPower(.1);
+            robot.ringBeltMotor.setPower(1);
         }
         else{
             robot.ringBeltMotor.setPower(0);
@@ -56,6 +57,9 @@ public class CaydenFirstState extends CyberarmState {
             robot.launchMotor.setPower(1);
         }else{
             robot.launchMotor.setPower(0);
+
+            robot.webCamServo.setPosition(robot.CAM_SERVO_DOWN);
+
         }
     }
 }
