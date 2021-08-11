@@ -39,12 +39,11 @@ public class SpencerFirstState extends CyberarmState {
         a = engine.gamepad1.a;
         x = engine.gamepad1.x;
         rightTrigger = engine.gamepad1.right_trigger;
-        leftTrigger = engine.gamepad1.right_trigger;
+        leftTrigger = engine.gamepad1.left_trigger;
         b = engine.gamepad1.b;
         /*this section is no bumpers... tank drive*/
 
         if (!leftBumper && !rightBumper) {
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GREEN);
             robot.driveFrontLeft.setPower(-leftStick);
             robot.driveFrontRight.setPower(-rightStick);
             robot.driveBackLeft.setPower(-leftStick);
@@ -52,7 +51,6 @@ public class SpencerFirstState extends CyberarmState {
         }
         /*
         if (x) {
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.ORANGE);
             robot.driveFrontLeft.setPower(-.5);
             robot.driveFrontRight.setPower(-.5);
             robot.driveBackLeft.setPower(-.5);
@@ -60,7 +58,6 @@ public class SpencerFirstState extends CyberarmState {
         }
 
         if (b){
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GREEN);
         robot.driveFrontLeft.setPower(-1);
         robot.driveFrontRight.setPower(-1);
         robot.driveBackLeft.setPower(-1);
@@ -70,7 +67,6 @@ public class SpencerFirstState extends CyberarmState {
 
         /*this is left bumper section... strafe to the left*/
         if (leftBumper) {
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GREEN);
             robot.driveFrontLeft.setPower(-1);
             robot.driveFrontRight.setPower(1);
             robot.driveBackLeft.setPower(1);
@@ -79,33 +75,54 @@ public class SpencerFirstState extends CyberarmState {
 
         /* right bumper section ... strafe to the right*/
         else if (rightBumper) {
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GREEN);
             robot.driveFrontLeft.setPower(1);
             robot.driveFrontRight.setPower(-1);
             robot.driveBackLeft.setPower(-1);
             robot.driveBackRight.setPower(1);
+        } else {
+            robot.driveFrontLeft.setPower(-leftStick);
+            robot.driveFrontRight.setPower(-rightStick);
+            robot.driveBackLeft.setPower(-leftStick);
+            robot.driveBackRight.setPower(-rightStick);
         }
+        /* y section ... when y is pressed fly wheel starts, when y is pressed again fly wheel stops*/
 
-        /* y section ... when y is pressed fly wheel starts, when a is pressed fly wheel stops*/
-        if (y) {
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.RED);
-            robot.launchMotor.setPower(1);
-        } else if (a) {
-            robot.launchMotor.setPower(0);
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GREEN);
-        }
+        boolean changed = false; //outside of loop
+        if (engine.gamepad1.y && !changed) {
+            if (robot.launchMotor.getPower() == 0) robot.launchMotor.setPower(1);
+            else robot.launchMotor.setPower(0);
+            changed = true;
+        } else if (!engine.gamepad1.y) changed = false;
 
         /*right Trigger section ... when right trigger is held collection wheels suck rings*/
 
-        if (rightTrigger>=0.5){
+        boolean rightTriggerB = (rightTrigger >= 0.5);
+        if (rightTriggerB) {
             robot.collectionMotor.setPower(1);
-            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.BLUE);
-        }
-        /*left trigger ... when left trigger is held tracks moves ring, when trigger is let go track stops*/
-         else if (leftTrigger>=0.5) {
-        robot.ringBeltMotor.setPower(1);
-        robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GOLD);
+        } else {
+            robot.collectionMotor.setPower(0);
+
         }
 
+
+        /*left trigger ... when left trigger is held tracks moves ring, when trigger is let go track stops*/
+
+         if (leftTrigger >= 0.5) {
+            robot.ringBeltMotor.setPower(1);
+        }
+         else {
+             robot.ringBeltMotor.setPower(0);
+         }
+
+         if (robot.launchMotor.getPower() == 1) {
+            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.RED);
+        }else if (leftTrigger >= 0.5) {
+             robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.BLUE);
+         }
+         else if (rightTriggerB) {
+             robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GOLD);
+        } else {
+            robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GREEN);
+        }
     }
-}
+    }
