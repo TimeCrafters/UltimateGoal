@@ -20,7 +20,7 @@ public class CaydenFirstState extends CyberarmState {
     public void exec() {
 
         if (engine.gamepad1.y){
-            robot.collectionMotor.setPower(1);
+            robot.collectionMotor.setPower(.75);
         }
         else{
             robot.collectionMotor.setPower(0);
@@ -37,7 +37,7 @@ public class CaydenFirstState extends CyberarmState {
         robot.driveFrontRight.setPower(-engine.gamepad1.right_stick_y);
         robot.driveBackRight.setPower(-engine.gamepad1.right_stick_y);
         robot.driveFrontLeft.setPower(-engine.gamepad1.left_stick_y);
-        robot.driveBackLeft.setPower(-engine.gamepad1.right_stick_y);
+        robot.driveBackLeft.setPower(-engine.gamepad1.left_stick_y);
 
         if (engine.gamepad1.left_bumper) {
             robot.driveFrontLeft.setPower(-1);
@@ -58,8 +58,13 @@ public class CaydenFirstState extends CyberarmState {
         }else{
             robot.launchMotor.setPower(0);
 
-            robot.webCamServo.setPosition(robot.CAM_SERVO_DOWN);
 
+
+        }
+        if (engine.gamepad1.dpad_up){
+            robot.webCamServo.setPosition(0);
+        }else if (engine.gamepad1.dpad_down){
+            robot.webCamServo.setPosition(robot.CAM_SERVO_DOWN);
         }
     }
 }
