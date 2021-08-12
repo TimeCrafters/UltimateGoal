@@ -102,7 +102,9 @@ public class SpencerFirstState extends CyberarmState {
 
             }
 
-
+            if (engine.gamepad1.b) {
+                robot.ringBeltMotor.setPower(-0.5);
+            }
             /*left trigger ... when left trigger is held tracks moves ring, when trigger is let go track stops*/
 
             if (leftTrigger >= 0.5) {
