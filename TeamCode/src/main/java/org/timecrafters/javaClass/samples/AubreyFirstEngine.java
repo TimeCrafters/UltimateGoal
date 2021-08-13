@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Robot;
 import org.timecrafters.javaClass.aubrey.AubreyFirstState;
+import org.timecrafters.javaClass.aubrey.dance;
 
 @Autonomous(name = "Aubrey: First Program", group = "aubrey")
 public class AubreyFirstEngine extends CyberarmEngine {
@@ -21,6 +22,6 @@ public class AubreyFirstEngine extends CyberarmEngine {
 
     @Override
     public void setup() {
-        addState(new AubreyFirstState(robot));
+        addState(new dance(robot));
     }
 }

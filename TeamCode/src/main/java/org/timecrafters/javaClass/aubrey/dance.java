@@ -17,16 +17,20 @@ public class dance extends CyberarmState {
     @Override
     public void exec() {
         float rotation = robot.getIMURotation();
- if (rotation <RotationLimit) {
-     powerWorks = -speed;
- }else {
-     powerWorks = speed;
 
- }
         robot.driveBackRight.setPower(powerWorks);
         robot.driveBackLeft.setPower(-powerWorks);
     robot.driveFrontLeft.setPower(-powerWorks);
     robot.driveFrontRight.setPower(powerWorks);
 
+    if (1 < rotation && rotation< 15){
+        powerWorks = 0;
+
+    }
+
+    }
+
+    @Override
+    public void telemetry() {engine.telemetry.addData("rotation",robot.getIMURotation());
     }
 }
