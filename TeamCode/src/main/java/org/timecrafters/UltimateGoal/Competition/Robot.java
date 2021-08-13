@@ -170,7 +170,7 @@ public class Robot {
 
     //Ring Belt
     public DcMotor ringBeltMotor;
-    public RevTouchSensor limitSwitch;
+    public RevTouchSensor magnetSensor;
     public int ringBeltStage;
     public int ringBeltGap = 700;
     public static final double RING_BELT_SLOW_POWER = 0.2;
@@ -256,7 +256,7 @@ public class Robot {
         ringBeltMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         ringBeltMotor .setMode(DcMotor.RunMode.RUN_USING_ENCODER);
 
-        limitSwitch = hardwareMap.get(RevTouchSensor.class, "magLim");
+        magnetSensor = hardwareMap.get(RevTouchSensor.class, "magLim");
 
         beltMaxStopTime = stateConfiguration.variable(
                 "system","belt", "maxStopTime").value();

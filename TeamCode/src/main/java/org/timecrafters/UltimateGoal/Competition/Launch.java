@@ -62,7 +62,7 @@ public class Launch extends CyberarmState {
         }
 
         //detect when limit switch is initially triggered
-        boolean detectingPass = robot.limitSwitch.isPressed();
+        boolean detectingPass = robot.magnetSensor.isPressed();
         int beltPos = robot.ringBeltMotor.getCurrentPosition();
         if (detectingPass && !detectedPass) {
             //finish once the ring belt has cycled all the way through and then returned to

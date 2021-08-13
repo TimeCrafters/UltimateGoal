@@ -26,7 +26,7 @@ public class ResetRingBelt extends CyberarmState {
     @Override
     public void exec() {
         //detect when limit switch is initially triggered
-        boolean detectingPass = robot.limitSwitch.isPressed();
+        boolean detectingPass = robot.magnetSensor.isPressed();
         int beltPos = robot.ringBeltMotor.getCurrentPosition();
 
         if (detectingPass && !detectedPass) {
