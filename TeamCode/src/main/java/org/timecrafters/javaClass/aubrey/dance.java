@@ -1,5 +1,7 @@
 package org.timecrafters.javaClass.aubrey;
 
+import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
+
 import org.cyberarm.engine.V2.CyberarmState;
 import org.timecrafters.javaClass.samples.SampleRobot;
 
@@ -23,10 +25,14 @@ public class dance extends CyberarmState {
     robot.driveFrontLeft.setPower(-powerWorks);
     robot.driveFrontRight.setPower(powerWorks);
 
-    if (1 < rotation && rotation< 15){
+    if (-1 > rotation && rotation> -15){
         powerWorks = 0;
 
     }
+robot. ledDriver. setPattern(RevBlinkinLedDriver.BlinkinPattern.RAINBOW_RAINBOW_PALETTE);
+    }
 
+    @Override
+    public void telemetry() {engine.telemetry.addData("rotation",robot.getIMURotation());
     }
 }
