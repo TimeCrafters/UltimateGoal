@@ -29,7 +29,7 @@ public class dance extends CyberarmState {
         powerWorks = 0;
 
     }
-robot. ledDriver. setPattern(RevBlinkinLedDriver.BlinkinPattern.CP1_2_COLOR_GRADIENT);
+robot. ledDriver. setPattern(RevBlinkinLedDriver.BlinkinPattern.RAINBOW_RAINBOW_PALETTE);
     }
 
     @Override
