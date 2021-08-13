@@ -18,7 +18,7 @@ public class FindLimitSwitch extends CyberarmState {
 
     @Override
     public void exec() {
-        if (robot.limitSwitch.isPressed()) {
+        if (robot.magnetSensor.isPressed()) {
             robot.ringBeltMotor.setPower(0);
             setHasFinished(true);
         }

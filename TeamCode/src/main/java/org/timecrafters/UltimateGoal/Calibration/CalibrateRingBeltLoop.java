@@ -21,7 +21,7 @@ public class CalibrateRingBeltLoop extends CyberarmState {
     public void exec() {
 
         currentTick = robot.ringBeltMotor.getCurrentPosition();
-        limit = robot.limitSwitch.isPressed();
+        limit = robot.magnetSensor.isPressed();
 
         if (engine.gamepad1.x || (engine.gamepad1.a && !limit)) {
             robot.ringBeltMotor.setPower(0.5);

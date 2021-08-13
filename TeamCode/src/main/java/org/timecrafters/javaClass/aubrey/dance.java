@@ -1,5 +1,7 @@
 package org.timecrafters.javaClass.aubrey;
 
+import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
+
 import org.cyberarm.engine.V2.CyberarmState;
 import org.timecrafters.javaClass.samples.SampleRobot;
 
@@ -27,7 +29,7 @@ public class dance extends CyberarmState {
         powerWorks = 0;
 
     }
-
+robot. ledDriver. setPattern(RevBlinkinLedDriver.BlinkinPattern.RAINBOW_RAINBOW_PALETTE);
     }
 
     @Override
