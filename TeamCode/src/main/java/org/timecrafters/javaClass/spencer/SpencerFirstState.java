@@ -52,45 +52,45 @@ public class SpencerFirstState extends CyberarmState {
             robot.driveBackRight.setPower(-rightStick);
         }
 
-        boolean a = engine.gamepad1.a;
+      /*  boolean a = engine.gamepad1.a;
         if (engine.gamepad1.a && !aPrev) {
             if (drivepower == 1) {
                 drivepower = 0.5;
             } else {
                 drivepower = 1;
             }
-            engine.gamepad1.a = aPrev;
+            engine.gamepad1.a = aPrev;*/
 
 
 
-            /*this is left bumper section... strafe to the left*/
-            if (leftBumper) {
-                robot.driveFrontLeft.setPower(-1);
-                robot.driveFrontRight.setPower(1);
-                robot.driveBackLeft.setPower(1);
-                robot.driveBackRight.setPower(-1);
+        /*this is left bumper section... strafe to the left*/
+        if (leftBumper) {
+            robot.driveFrontLeft.setPower(-1);
+            robot.driveFrontRight.setPower(1);
+            robot.driveBackLeft.setPower(1);
+            robot.driveBackRight.setPower(-1);
+        }
+
+        /* right bumper section ... strafe to the right*/
+        else if (rightBumper) {
+            robot.driveFrontLeft.setPower(1);
+            robot.driveFrontRight.setPower(-1);
+            robot.driveBackLeft.setPower(-1);
+            robot.driveBackRight.setPower(1);
+        } else {
+            robot.driveFrontLeft.setPower(-leftStick);
+            robot.driveFrontRight.setPower(-rightStick);
+            robot.driveBackLeft.setPower(-leftStick);
+            robot.driveBackRight.setPower(-rightStick);
+        }
+        /* y section ... when y is pressed fly wheel starts, when y is pressed again fly wheel stops*/
+
+        if (y) {
+            robot.launchMotor.setPower(1);
+
+            if (a) {
+                robot.launchMotor.setPower(0);
             }
-
-            /* right bumper section ... strafe to the right*/
-            else if (rightBumper) {
-                robot.driveFrontLeft.setPower(1);
-                robot.driveFrontRight.setPower(-1);
-                robot.driveBackLeft.setPower(-1);
-                robot.driveBackRight.setPower(1);
-            } else {
-                robot.driveFrontLeft.setPower(-leftStick);
-                robot.driveFrontRight.setPower(-rightStick);
-                robot.driveBackLeft.setPower(-leftStick);
-                robot.driveBackRight.setPower(-rightStick);
-            }
-            /* y section ... when y is pressed fly wheel starts, when y is pressed again fly wheel stops*/
-
-            boolean changed = false; //outside of loop
-            if (engine.gamepad1.y && !changed) {
-                if (robot.launchMotor.getPower() == 0) robot.launchMotor.setPower(1);
-                else robot.launchMotor.setPower(0);
-                changed = true;
-            } else if (!engine.gamepad1.y) changed = false;
 
             /*right Trigger section ... when right trigger is held collection wheels suck rings*/
 
@@ -102,9 +102,9 @@ public class SpencerFirstState extends CyberarmState {
 
             }
 
-            if (engine.gamepad1.b) {
+          /*  if (engine.gamepad1.b) {
                 robot.ringBeltMotor.setPower(-0.5);
-            }
+            }*/
             /*left trigger ... when left trigger is held tracks moves ring, when trigger is let go track stops*/
 
             if (leftTrigger >= 0.5) {
@@ -119,8 +119,6 @@ public class SpencerFirstState extends CyberarmState {
                 robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.BLUE);
             } else if (rightTriggerB) {
                 robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GOLD);
-            } else if (drivepower == 0.5){
-                robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.ORANGE);
             } else {
                 robot.ledDriver.setPattern(RevBlinkinLedDriver.BlinkinPattern.GREEN);
             }
