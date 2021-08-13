@@ -22,6 +22,7 @@ public class CaydenFirstEngine extends CyberarmEngine {
     
     @Override
     public void setup() {
-        addState(new Cayden_Autonomous(robot));
+        addState(new Cayden_Autonomous(robot,1,12));
+        addState(new Cayden_Autonomous(robot,-1,12));
     }
 }
