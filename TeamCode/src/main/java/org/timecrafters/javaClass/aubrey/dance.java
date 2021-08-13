@@ -23,7 +23,7 @@ public class dance extends CyberarmState {
     robot.driveFrontLeft.setPower(-powerWorks);
     robot.driveFrontRight.setPower(powerWorks);
 
-    if (1 < rotation && rotation< 15){
+    if (-1 > rotation && rotation> -15){
         powerWorks = 0;
 
     }
