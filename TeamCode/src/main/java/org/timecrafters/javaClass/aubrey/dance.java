@@ -29,4 +29,8 @@ public class dance extends CyberarmState {
     }
 
     }
+
+    @Override
+    public void telemetry() {engine.telemetry.addData("rotation",robot.getIMURotation());
+    }
 }
