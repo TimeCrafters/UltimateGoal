@@ -8,6 +8,7 @@ public class CaydenFirstState extends CyberarmState {
 
     //here, you'll find some of your variables. you can add more as you need them.
     private Robot robot;
+    private double variable=1;
 
     //This is the constructor. It lets other code bits run use the code you put here
     public CaydenFirstState(Robot robot) {
