@@ -1,4 +1,4 @@
-package org.timecrafters.javaClass.samples;
+package org.timecrafters.javaClass.aubrey;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
@@ -6,8 +6,8 @@ import org.cyberarm.engine.V2.CyberarmEngine;
 import org.timecrafters.UltimateGoal.Competition.Robot;
 import org.timecrafters.javaClass.aubrey.AubreyFirstState;
 import org.timecrafters.javaClass.aubrey.dance;
+import org.timecrafters.javaClass.samples.SampleRobot;
 
-@Autonomous(name = "Aubrey: First Program", group = "aubrey")
 public class AubreyFirstEngine extends CyberarmEngine {
 
     SampleRobot robot;

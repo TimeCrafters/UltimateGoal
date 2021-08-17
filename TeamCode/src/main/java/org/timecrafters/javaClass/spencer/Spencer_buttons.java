@@ -1,7 +1,8 @@
-package org.timecrafters.javaClass.samples;
+package org.timecrafters.javaClass.spencer;
 import com.qualcomm.hardware.rev.RevBlinkinLedDriver;
 
 import org.cyberarm.engine.V2.CyberarmState;
+import org.timecrafters.javaClass.samples.SampleRobot;
 
 public class Spencer_buttons extends CyberarmState {
     public Spencer_buttons(SampleRobot robot, boolean yBeingPressed) {
@@ -13,6 +14,7 @@ public class Spencer_buttons extends CyberarmState {
     int Lights = 0;
     @Override
     public void exec() {
+
     if (engine.gamepad1.y && !yBeingPressed){
         yBeingPressed = true;
         Lights ++;

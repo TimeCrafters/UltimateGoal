@@ -1,4 +1,4 @@
-package org.timecrafters.javaClass.samples.samples;
+package org.timecrafters.javaClass.samples;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 

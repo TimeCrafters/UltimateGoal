@@ -1,4 +1,4 @@
-package org.timecrafters.javaClass.samples;
+package org.timecrafters.javaClass.cayden;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
