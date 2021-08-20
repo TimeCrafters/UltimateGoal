@@ -1,6 +1,7 @@
 package org.timecrafters.javaClass.spencer;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 public class Spencer_Dmitry {
@@ -12,13 +13,16 @@ public class Spencer_Dmitry {
 
     public DcMotor driveleft;
     public DcMotor driveright;
+    public DcMotor armmotor;
 
     public void hardwareInt() {
         driveleft = hardwareMap.dcMotor.get("frontLeft");
         driveright = hardwareMap.dcMotor.get("frontRight");
+        armmotor = hardwareMap.dcMotor.get("armMotor");
+
+        driveleft.setDirection(DcMotorSimple.Direction.REVERSE);
+        driveright.setDirection(DcMotorSimple.Direction.FORWARD);
     }
-
-
 
 
 }
