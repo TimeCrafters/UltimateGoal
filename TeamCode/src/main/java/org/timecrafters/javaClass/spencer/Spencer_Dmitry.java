@@ -22,6 +22,7 @@ public class Spencer_Dmitry {
 
         driveleft.setDirection(DcMotorSimple.Direction.REVERSE);
         driveright.setDirection(DcMotorSimple.Direction.FORWARD);
+        armmotor.setDirection(DcMotorSimple.Direction.FORWARD);
     }
 
 
