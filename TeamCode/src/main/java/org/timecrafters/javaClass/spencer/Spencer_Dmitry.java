@@ -18,7 +18,7 @@ public class Spencer_Dmitry {
     public void hardwareInt() {
         driveleft = hardwareMap.dcMotor.get("frontLeft");
         driveright = hardwareMap.dcMotor.get("frontRight");
-        armmotor = hardwareMap.dcMotor.get("armMotor");
+        armmotor = hardwareMap.dcMotor.get("arm motor");
 
         driveleft.setDirection(DcMotorSimple.Direction.REVERSE);
         driveright.setDirection(DcMotorSimple.Direction.FORWARD);
