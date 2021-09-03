@@ -1,6 +1,10 @@
 package org.timecrafters.javaClass.cayden;
 
+import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
+
 import org.cyberarm.engine.V2.CyberarmEngine;
+
+@Autonomous(name="Cayden_Dimitri_Move")
 
 public class Cayden_Dimitri_engine extends CyberarmEngine {
 

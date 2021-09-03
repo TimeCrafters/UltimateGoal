@@ -11,10 +11,14 @@ public class Cayden_Dimitri {
     }
 
     public DcMotor driveLeft;
+    public DcMotor arm;
     public DcMotor driveRight;
 
     public void hardware_init(){
+
+arm = hardwareMap.dcMotor.get("arm motor");
 driveLeft = hardwareMap.dcMotor.get("frontLeft");
 driveRight = hardwareMap.dcMotor.get("frontRight");
+
     }
 }

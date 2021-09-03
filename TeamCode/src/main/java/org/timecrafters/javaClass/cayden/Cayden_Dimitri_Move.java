@@ -13,5 +13,11 @@ public class Cayden_Dimitri_Move extends CyberarmState {
     public void exec() {
     robot.driveRight.setPower(.75);
     robot.driveLeft.setPower(.75);
+
+    }
+
+    @Override
+    public void telemetry() {
+        engine.telemetry.addData("arm position",robot.arm.getCurrentPosition());
     }
 }
