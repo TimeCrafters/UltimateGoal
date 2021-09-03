@@ -4,9 +4,9 @@ import org.cyberarm.engine.V2.CyberarmState;
 
 public class Minibot_State extends CyberarmState {
 
-    private Minibot_State robot;
+    private miniboi robot;
 
-    public Minibot_State(Minibot_State robot) {
+    public Minibot_State(miniboi robot) {
         this.robot = robot;
     }
 
