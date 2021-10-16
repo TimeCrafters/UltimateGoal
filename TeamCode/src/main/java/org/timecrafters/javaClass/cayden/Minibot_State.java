@@ -12,8 +12,10 @@ public class Minibot_State extends CyberarmState {
 
     @Override
     public void exec() {
-        if (engine.gamepad1.right_trigger > -0.5) {
+        if (engine.gamepad1.right_trigger > 0.5) {
             robot.driveleft.setPower(1);
-        } else robot.driveleft.setPower(0);
+        } else {
+            robot.driveleft.setPower(0);
+        }
     }
 }

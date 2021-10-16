@@ -9,11 +9,6 @@ import org.cyberarm.engine.V2.CyberarmEngine;
 @TeleOp(name = "Caydens minibot", group = "Cayden")
 
     public class miniboi extends CyberarmEngine {
-        private HardwareMap hardwareMap;
-        public miniboi(HardwareMap hardWareMap) {
-            hardwareMap = hardWareMap;
-        }
-
         public DcMotor driveleft;
         public DcMotor driveright;
 

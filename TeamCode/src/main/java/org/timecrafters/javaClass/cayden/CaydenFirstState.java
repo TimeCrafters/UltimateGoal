@@ -1,5 +1,8 @@
 package org.timecrafters.javaClass.cayden;
 
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
+
 import org.cyberarm.engine.V2.CyberarmState;
 import org.timecrafters.UltimateGoal.Competition.Robot;
 import org.timecrafters.javaClass.samples.SampleRobot;
@@ -7,12 +10,25 @@ import org.timecrafters.javaClass.samples.SampleRobot;
 public class CaydenFirstState extends CyberarmState {
 
     //here, you'll find some of your variables. you can add more as you need them.
-    private Robot robot;
-    private double variable=1;
+    DcMotor driveFrontRight;
+    DcMotor driveBackRight;
+    DcMotor driveFrontLeft;
+    DcMotor driveBackLeft;
 
     //This is the constructor. It lets other code bits run use the code you put here
-    public CaydenFirstState(Robot robot) {
-        this.robot = robot;
+    public CaydenFirstState() {
+
+    }
+
+    @Override
+    public void init() {
+        driveFrontRight = engine.hardwareMap.dcMotor.get("driveFrontRight");
+        driveFrontLeft = engine.hardwareMap.dcMotor.get("driveFrontLeft");
+        driveBackRight = engine.hardwareMap.dcMotor.get("driveBackRight");
+        driveBackLeft = engine.hardwareMap.dcMotor.get("driveBackLeft");
+
+        driveFrontLeft.setDirection(DcMotorSimple.Direction.REVERSE);
+        driveBackLeft.setDirection(DcMotorSimple.Direction.REVERSE);
     }
 
     //This is a method. methods are bits of code that can be run elsewhere. 
@@ -20,52 +36,10 @@ public class CaydenFirstState extends CyberarmState {
     @Override
     public void exec() {
 
-        if (engine.gamepad1.y){
-            robot.collectionMotor.setPower(.75);
-        }
-        else{
-            robot.collectionMotor.setPower(0);
-        }
+        driveFrontRight.setPower(-engine.gamepad1.right_stick_y);
+        driveBackRight.setPower(-engine.gamepad1.right_stick_y);
+        driveFrontLeft.setPower(-engine.gamepad1.left_stick_y);
+        driveBackLeft.setPower(-engine.gamepad1.left_stick_y);
 
-        if(engine.gamepad1.b){
-            robot.ringBeltMotor.setPower(1);
-        }
-        else{
-            robot.ringBeltMotor.setPower(0);
-        }
-
-
-        robot.driveFrontRight.setPower(-engine.gamepad1.right_stick_y);
-        robot.driveBackRight.setPower(-engine.gamepad1.right_stick_y);
-        robot.driveFrontLeft.setPower(-engine.gamepad1.left_stick_y);
-        robot.driveBackLeft.setPower(-engine.gamepad1.left_stick_y);
-
-        if (engine.gamepad1.left_bumper) {
-            robot.driveFrontLeft.setPower(-1);
-            robot.driveFrontRight.setPower(1);
-            robot.driveBackLeft.setPower(1);
-            robot.driveBackRight.setPower(-1);
-        } else if (engine.gamepad1.right_bumper) {
-            robot.driveFrontLeft.setPower(1);
-            robot.driveFrontRight.setPower(-1);
-            robot.driveBackLeft.setPower(-1);
-            robot.driveBackRight.setPower(1);
-        }
-
-        robot.ringBeltMotor.setPower(engine.gamepad1.right_trigger);
-
-        if (engine.gamepad1.x){
-            robot.launchMotor.setPower(1);
-        }else{
-            robot.launchMotor.setPower(0);
-
-
-
-        }
-        if (engine.gamepad1.dpad_up){
-            robot.webCamServo.setPosition(0);
-        }else if (engine.gamepad1.dpad_down){
-            robot.webCamServo.setPosition(robot.CAM_SERVO_DOWN);
-        }
     }
 }
